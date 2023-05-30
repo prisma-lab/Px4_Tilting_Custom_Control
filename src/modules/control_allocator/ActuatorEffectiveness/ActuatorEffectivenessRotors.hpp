@@ -74,16 +74,18 @@ public:
 		RotorGeometry rotors[NUM_ROTORS_MAX];
 		int num_rotors{0};
 		bool propeller_torque_disabled{false};
-		bool yaw_by_differential_thrust_disabled{false};
 		bool propeller_torque_disabled_non_upwards{false}; ///< keeps propeller torque enabled for upward facing motors
-		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
 	};
 
-	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
-				    bool tilt_support = false);
-	virtual ~ActuatorEffectivenessRotors() = default;
+	// ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
+	// 			    bool tilt_support = false);
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	/*** CUSTOM ***/
+	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
+				    bool tilt_support = false, bool tilting_omnidir = false);
+	/*** CUSOTM ***/
+
+	virtual ~ActuatorEffectivenessRotors() = default;
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
@@ -95,11 +97,23 @@ public:
 		normalize[0] = true;
 	}
 
+	/*** CUSTOM ***/
+	/**
+	 * @param tilting_omnidir to check if is omnidirectional tilting
+	 * @param vet_lat to compute a vertical force or lateral force column
+	*/
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
+					      bool tilting_omnidir = false,
+					      bool horizontal_matrix = false);
+	/*** END-CUSTOM ***/
+
+	// static int computeEffectivenessMatrix(const Geometry &geometry,
+	// 				      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
 
 	bool addActuators(Configuration &configuration);
 
+	// const char *name() const override { return "Multirotor"; }
 	const char *name() const override { return "Rotors"; }
 
 	/**
@@ -120,11 +134,7 @@ public:
 
 	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
 
-	void enableYawByDifferentialThrust(bool enable) { _geometry.yaw_by_differential_thrust_disabled = !enable; }
-
 	void enablePropellerTorqueNonUpwards(bool enable) { _geometry.propeller_torque_disabled_non_upwards = !enable; }
-
-	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	uint32_t getUpwardsMotors() const;
 
@@ -132,6 +142,10 @@ private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+
+	/*** CUSTOM ***/
+	const bool _tilting_omnidir;
+	/*** END-CUSTOM ***/
 
 	struct ParamHandles {
 		param_t position_x;
