@@ -40,8 +40,6 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessCustom.hpp
 	ActuatorEffectivenessFixedWing.cpp
 	ActuatorEffectivenessFixedWing.hpp
-	ActuatorEffectivenessHelicopter.cpp
-	ActuatorEffectivenessHelicopter.hpp
 	ActuatorEffectivenessMCTilt.cpp
 	ActuatorEffectivenessMCTilt.hpp
 	ActuatorEffectivenessMultirotor.cpp
@@ -60,6 +58,9 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessRoverAckermann.cpp
 	ActuatorEffectivenessRoverDifferential.hpp
 	ActuatorEffectivenessRoverDifferential.cpp
+	# CUSTOM
+	ActuatorEffectivenessTiltingMultirotor.hpp
+	ActuatorEffectivenessTiltingMultirotor.cpp
 )
 
 target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
@@ -69,5 +70,4 @@ target_link_libraries(ActuatorEffectiveness
 		mathlib
 )
 
-px4_add_functional_gtest(SRC ActuatorEffectivenessHelicopterTest.cpp LINKLIBS ActuatorEffectiveness)
 px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)
