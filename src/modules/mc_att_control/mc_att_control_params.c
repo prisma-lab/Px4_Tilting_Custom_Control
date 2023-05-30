@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
  * in yaw compared to the other axes and it makes sense because yaw is not critical for
  * stable hovering or 3D navigation.
  *
- * For yaw control tuning use MC_YAW_P. This ratio has no impact on the yaw gain.
+ * For yaw control tuning use MC_YAW_P. This ratio has no inpact on the yaw gain.
  *
  * @min 0.0
  * @max 1.0
@@ -158,3 +158,29 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MC_MAN_TILT_TAU, 0.0f);
+
+// *** CUSTOM ***
+
+/**
+ * Map the pitch angle on tilting servo motors
+ *
+ * Setting this parameter to 0 for standard multicopters
+ *
+ * @boolean
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_PITCH_ON_TILT, 0);
+
+/**
+ * Maximum horizontal force for omnidirectional tilting multirotors
+ *
+ * @unit N
+ * @min 0.0
+ * @max 5.0
+ * @decimal 2
+ * @group Multicopter Attitude Control
+*/
+PARAM_DEFINE_FLOAT(MC_MAX_FXY, 0.15f);
+
+
+// *** END-CUSTOM ***
