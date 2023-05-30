@@ -18,6 +18,10 @@ uint8 MAIN_STATE_AUTO_PRECLAND      = 13
 uint8 MAIN_STATE_ORBIT              = 14
 uint8 MAIN_STATE_AUTO_VTOL_TAKEOFF  = 15
 uint8 MAIN_STATE_MAX                = 16
+## CUSTOM ##
+uint8 MAIN_STATE_PRISMA_1	    = 17
+uint8 MAIN_STATE_PRISMA_MAN	    = 18
+## END-CUSTOM ##
 
 uint8 main_state
 

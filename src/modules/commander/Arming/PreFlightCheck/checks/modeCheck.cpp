@@ -43,6 +43,8 @@ bool PreFlightCheck::modeCheck(orb_advert_t *mavlink_log_pub, const bool report_
 	bool success = true;
 
 	switch (vehicle_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN:
+	case vehicle_status_s::NAVIGATION_STATE_PRISMA_1:
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:

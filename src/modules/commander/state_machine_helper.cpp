@@ -138,6 +138,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_PRISMA_MAN:
 	case commander_state_s::MAIN_STATE_POSCTL:
 
 		/* need at minimum local position estimate */
@@ -216,6 +217,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_PRISMA_1:
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* need offboard signal */
@@ -351,6 +353,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 		break;
 
+	case commander_state_s::MAIN_STATE_PRISMA_MAN:
 	case commander_state_s::MAIN_STATE_POSCTL: {
 
 			const bool rc_fallback_allowed = (posctl_nav_loss_act != position_nav_loss_actions_t::LAND_TERMINATE) || !is_armed;
@@ -369,7 +372,10 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
-				status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+				if(internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL)
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+				else if(internal_state.main_state == commander_state_s::MAIN_STATE_PRISMA_MAN)
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN;
 			}
 		}
 		break;
@@ -620,6 +626,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 		break;
 
+	case commander_state_s::MAIN_STATE_PRISMA_1:
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		if (status_flags.offboard_control_signal_lost) {
@@ -648,7 +655,10 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 		} else {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+			if ( internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD )
+				status.nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+			else if ( internal_state.main_state == commander_state_s::MAIN_STATE_PRISMA_1 )
+				status.nav_state = vehicle_status_s::NAVIGATION_STATE_PRISMA_1;
 		}
 
 		break;

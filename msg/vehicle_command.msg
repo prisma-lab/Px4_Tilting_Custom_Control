@@ -1,5 +1,6 @@
 uint64 timestamp						# time since system start (microseconds)
 
+uint16 VEHICLE_CMD_CURRENTMODE = 10001				# test command
 uint16 VEHICLE_CMD_CUSTOM_0 = 0				# test command
 uint16 VEHICLE_CMD_CUSTOM_1 = 1				# test command
 uint16 VEHICLE_CMD_CUSTOM_2 = 2				# test command

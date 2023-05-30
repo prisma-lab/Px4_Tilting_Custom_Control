@@ -399,6 +399,14 @@ int Commander::custom_command(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 
+			} else if (!strcmp(argv[1], "prisma:prisma1")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_PRISMA,
+						     PX4_CUSTOM_SUB_MODE_PRISMA_1);
+
+			} else if (!strcmp(argv[1], "prisma:man")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_PRISMA,
+						     PX4_CUSTOM_SUB_MODE_PRISMA_MAN);
+
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
 			}
@@ -950,6 +958,21 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_main_state = commander_state_s::MAIN_STATE_OFFBOARD;
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_PRISMA) {
+					//PX4_INFO("Detected desired PRISMA main state");
+					if (custom_sub_mode > 0) {
+
+						switch (custom_sub_mode) {
+						case PX4_CUSTOM_SUB_MODE_PRISMA_1:
+							//PX4_INFO("Detected desired PRISMA1 sub state");
+							desired_main_state = commander_state_s::MAIN_STATE_PRISMA_1;
+							break;
+						case PX4_CUSTOM_SUB_MODE_PRISMA_MAN:
+							//PX4_INFO("Detected desired PRISMA1 sub state");
+							desired_main_state = commander_state_s::MAIN_STATE_PRISMA_MAN;
+							break;
+						}
+					}
 				}
 
 			} else {
@@ -1589,6 +1612,45 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 		/* ignore commands that are handled by other parts of the system */
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_CURRENTMODE:
+		if(_internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
+			PX4_INFO("Current mode : MANUAL");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL)
+			PX4_INFO("Current mode : ALTITUDE CONTROL");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL)
+			PX4_INFO("Current mode : POSITION CONTROL");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION)
+			PX4_INFO("Current mode : AUTO MISSION");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
+			PX4_INFO("Current mode : AUTO LOITER");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
+			PX4_INFO("Current mode : AUTO RTL");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_ACRO)
+			PX4_INFO("Current mode : ACRO");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD)
+			PX4_INFO("Current mode : OFFBOARD");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_STAB)
+			PX4_INFO("Current mode : STABILIZED");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF)
+			PX4_INFO("Current mode : AUTO TAKEOFF");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND)
+			PX4_INFO("Current mode : AUTO LAND");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET)
+			PX4_INFO("Current mode : AUTO FOLLOW TARGET");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)
+			PX4_INFO("Current mode : AUTO PRECISION LANDING");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_ORBIT)
+			PX4_INFO("Current mode : ORBIT");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF)
+			PX4_INFO("Current mode : AUTO VTOL TAKEOFF");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_PRISMA_1)
+			PX4_INFO("Current mode : PRISMA 1");
+		else if(_internal_state.main_state == commander_state_s::MAIN_STATE_PRISMA_MAN)
+			PX4_INFO("Current mode : PRISMA MANUAL");
+		else
+			PX4_INFO("Current mode : %u", _internal_state.main_state);
 		break;
 
 	default:
@@ -3390,6 +3452,12 @@ Commander::update_control_mode()
 	_vehicle_control_mode.flag_armed = _armed.armed;
 
 	switch (_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_PRISMA_1:
+	case vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN:
+		_vehicle_control_mode.flag_control_prisma_enabled = true;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		break;
+		
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_vehicle_control_mode.flag_control_manual_enabled = true;
 		_vehicle_control_mode.flag_control_rates_enabled = stabilization_required();

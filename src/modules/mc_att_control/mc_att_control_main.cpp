@@ -369,6 +369,8 @@ MulticopterAttitudeControl::Run()
 
 		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
+		run_att_ctrl = run_att_ctrl && !_v_control_mode.flag_control_prisma_enabled;
+
 		if (run_att_ctrl) {
 
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode

@@ -340,7 +340,8 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
+		&& !_vehicle_control_mode.flag_control_prisma_enabled) {
 
 			const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
 
