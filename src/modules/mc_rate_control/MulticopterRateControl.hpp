@@ -33,7 +33,8 @@
 
 #pragma once
 
-#include <lib/rate_control/rate_control.hpp>
+#include <RateControl.hpp>
+
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -46,12 +47,15 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -59,6 +63,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+
+/*** CUSTOM ***/
+#include <uORB/topics/tilting_servo_sp.h>
+/*** END-CUSTOM ***/
 
 using namespace time_literals;
 
@@ -85,49 +93,67 @@ private:
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */
-	void parameters_updated();
+	void		parameters_updated();
 
-	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
+	void updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt);
+
+	void publishTorqueSetpoint(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
 	RateControl _rate_control; ///< class for rate control calculations
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
-	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
+	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub{ORB_ID(actuator_controls_status_0)};
+	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
+	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_0_pub{ORB_ID(actuator_controls_status_0)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status)};
-	uORB::Publication<vehicle_rates_setpoint_s>	_vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub;
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub;
+	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	vehicle_control_mode_s	_vehicle_control_mode{};
-	vehicle_status_s	_vehicle_status{};
+	orb_advert_t _mavlink_log_pub{nullptr};
 
+	vehicle_control_mode_s		_v_control_mode{};
+	vehicle_status_s		_vehicle_status{};
+
+	bool _actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 	bool _landed{true};
 	bool _maybe_landed{true};
 
-	hrt_abstime _last_run{0};
+	float _battery_status_scale{0.0f};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
-	// keep setpoint values between updates
-	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
-	matrix::Vector3f _rates_setpoint{};
+	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
-	float _battery_status_scale{0.0f};
-	matrix::Vector3f _thrust_setpoint{};
+
+	float		_thrust_sp{0.0f};		/**< thrust setpoint */
+
+
+	hrt_abstime _last_run{0};
+
+	int8_t _landing_gear{landing_gear_s::GEAR_DOWN};
 
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
+
+	/*** CUSTOM ***/
+	uORB::Subscription _tilting_servo_sp_sub{ORB_ID(tilting_servo_setpoint)};
+	float _tilting_angle_sp{0.0f}; /**< [rad] angle setpoint for tilting servo motors */
+	matrix::Vector3f _thrust_setpoint{};
+	/*** END-CUSOTM ***/
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
@@ -151,14 +177,29 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
 		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
 
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max,			/**< scaling factor from stick to yaw rate */
+
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
 		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _param_mc_acro_y_max,
-		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,			/**< expo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,				/**< expo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _param_mc_acro_expo_y,				/**< expo stick curve shape (yaw) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,			/**< superexpo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,			/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+
+		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl,
+
+		/*** CUSTOM ***/
+		(ParamFloat<px4::params::CA_SV_TL0_MINA>) _param_tilt_min_angle,
+		(ParamFloat<px4::params::CA_SV_TL0_MAXA>) _param_tilt_max_angle,
+		(ParamInt<px4::params::CA_TILTING_TYPE>)    _param_tilting_type, 	/**< 0:h-tilting, 1:omnidirectional*/
+		(ParamInt<px4::params::CA_AIRFRAME>)	    _param_airframe, 		/**< 11: tilting_multirotors */
+		(ParamInt<px4::params::MC_PITCH_ON_TILT>)   _param_mpc_pitch_on_tilt
+		/*** END-CUSTOM ***/
 	)
+
+	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
+
 };
