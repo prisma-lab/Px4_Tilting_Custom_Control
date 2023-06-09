@@ -31,10 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(PositionControlBase
-	PositionControlBase.hpp
-)
-target_include_directories(PositionControlBase PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# px4_add_library(PositionControlBase
+# 	PositionControlBase.hpp
+# )
+# target_include_directories(PositionControlBase PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_library(PositionControlPass
 	PositionControlPass.cpp

@@ -465,6 +465,13 @@ int Commander::custom_command(int argc, char *argv[])
 		return (ret ? 0 : 1);
 	}
 
+	if(!strcmp(argv[0], "currentmode")) {
+		PX4_INFO("Sending currentmode request...");
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_CURRENTMODE);
+
+		return (ret ? 0 : 1);
+	}
+
 
 #endif
 
@@ -958,6 +965,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_main_state = commander_state_s::MAIN_STATE_OFFBOARD;
+
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_PRISMA) {
 					//PX4_INFO("Detected desired PRISMA main state");
 					if (custom_sub_mode > 0) {

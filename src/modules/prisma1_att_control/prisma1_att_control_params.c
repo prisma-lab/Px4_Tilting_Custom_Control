@@ -68,3 +68,31 @@ PARAM_DEFINE_FLOAT(PRISMA_IBY, 0.029125f);
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_IBZ, 0.055225f);
+/**
+ * Maximum thrust of the UAV
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_THR, 28.2656f);
+/**
+ * Maximum X torque of the UAV
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_X_TOR, 2.968f);
+/**
+ * Maximum Y torque of the UAV
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_Y_TOR, 1.837f);
+/**
+ * Maximum Z torque of the UAV
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_Z_TOR, 0.848f);

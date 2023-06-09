@@ -31,10 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(AttitudeControlBase
-	AttitudeControlBase.hpp
-)
-target_include_directories(AttitudeControlBase PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# px4_add_library(AttitudeControlBase
+# 	AttitudeControlBase.hpp
+# )
+# target_include_directories(AttitudeControlBase PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_library(AttitudeControlPass
 	AttitudeControlPass.hpp

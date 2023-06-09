@@ -94,6 +94,10 @@ private:
 		(ParamFloat<px4::params::PRISMA_MASS>) _param_mass,
 		(ParamFloat<px4::params::PRISMA_IBX>) _param_ibx,
 		(ParamFloat<px4::params::PRISMA_IBY>) _param_iby,
-		(ParamFloat<px4::params::PRISMA_IBZ>) _param_ibz
+		(ParamFloat<px4::params::PRISMA_IBZ>) _param_ibz,
+		(ParamFloat<px4::params::PRISMA_THR>) _param_thr,
+		(ParamFloat<px4::params::PRISMA_X_TOR>) _param_x_tor,
+		(ParamFloat<px4::params::PRISMA_Y_TOR>) _param_y_tor,
+		(ParamFloat<px4::params::PRISMA_Z_TOR>) _param_z_tor
 	);
 };

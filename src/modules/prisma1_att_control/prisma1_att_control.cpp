@@ -44,6 +44,8 @@ void Prisma1AttitudeControl::parameters_update(bool force)
 		_control.setC2(_param_c2.get());
 		_control.setMass(_param_mass.get());
 		_control.setIb(_param_ibx.get(), _param_iby.get(), _param_ibz.get());
+		_control.setThrust(_param_thr.get());
+		_control.setXYZTorque(_param_x_tor.get(), _param_y_tor.get(), _param_z_tor.get());
 	}
 }
 

@@ -60,6 +60,15 @@ public:
 
 	virtual void resetIntegral() = 0;
 
+	void setThrust(const float t) {
+		_THRUST_MAX = t;
+	};
+
+	void setXYZTorque(const float x, const float y, const float z) {
+		_TORQUE_X_MAX = x;
+		_TORQUE_Y_MAX = y;
+		_TORQUE_Z_MAX = z;
+	};
 protected:
 
 	float _dt;
@@ -74,9 +83,9 @@ protected:
 	matrix::Vector3f _torque_sp; /**< desired torque */
 	matrix::Vector3f _thrust_sp; /**< desired thrust */
 
-	// Constants
-	const float _THRUST_MAX = 28.2656;
-	const float _TORQUE_X_MAX = 2.968;
-	const float _TORQUE_Y_MAX = 1.837;
-	const float _TORQUE_Z_MAX = 0.848;
+	// Drone torque and thrust
+	float _THRUST_MAX = 28.2656;
+	float _TORQUE_X_MAX = 2.968;
+	float _TORQUE_Y_MAX = 1.837;
+	float _TORQUE_Z_MAX = 0.848;
 };

@@ -626,7 +626,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 		break;
 
+	//##
 	case commander_state_s::MAIN_STATE_PRISMA_1:
+	//##
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		if (status_flags.offboard_control_signal_lost) {

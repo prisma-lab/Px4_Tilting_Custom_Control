@@ -229,8 +229,8 @@ void deriv_unit_vector( const Vector3f &A, const Vector3f &A_dot, const Vector3f
     Vector3f &q, Vector3f &q_dot, Vector3f &q_ddot )
 {
     double nA = A.norm();
-    double nA3 = pow(nA, 3);
-    double nA5 = pow(nA, 5);
+    double nA3 = nA * nA * nA; //pow(nA, 3.0);
+    double nA5 = nA3 * nA * nA; //pow(nA, 5.0);
 
     q = A / nA;
     q_dot = A_dot / nA \
@@ -239,5 +239,5 @@ void deriv_unit_vector( const Vector3f &A, const Vector3f &A_dot, const Vector3f
     q_ddot = A_ddot / nA \
         - A_dot / nA3 * (2 * A.dot(A_dot)) \
         - A / nA3 * (A_dot.dot(A_dot) + A.dot(A_ddot)) \
-        + 3.0f * A / nA5 * pow(A.dot(A_dot), 2);
+        + 3.0f * A / nA5 * A.dot(A_dot) * A.dot(A_dot); //pow(A.dot(A_dot), 2.0);
 }
