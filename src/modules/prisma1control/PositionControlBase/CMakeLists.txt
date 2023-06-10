@@ -50,4 +50,12 @@ px4_add_library(PositionControlGeom
 )
 target_include_directories(PositionControlGeom PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+px4_add_library(PositionControlTilt
+	ControlMath.cpp
+	ControlMath.hpp
+	PositionControlTilt.cpp
+	PositionControlTilt.hpp
+)
+target_include_directories(PositionControlTilt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 #px4_add_unit_gtest(SRC ControlBase.cpp LINKLIBS ControlBase)

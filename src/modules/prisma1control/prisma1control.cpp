@@ -90,9 +90,11 @@ void Prisma1Control::parameters_update(bool force)
 		_control.setPosGains(Vector3f(_param_xy_p.get(), _param_xy_p.get(), _param_z_p.get()));
 		_control.setVelGains(Vector3f(_param_xy_v.get(), _param_xy_v.get(), _param_z_v.get()));
 		_control.setIntGains(Vector3f(_param_xy_i.get(), _param_xy_i.get(), _param_z_i.get()));
+		_control.setMass(_param_mass.get());
+		#ifdef GEOM_CONTROL
 		_control.setSigma(_param_sigma.get());
 		_control.setC1(_param_c1.get());
-		_control.setMass(_param_mass.get());
+		#endif
 	}
 }
 
@@ -330,14 +332,10 @@ void Prisma1Control::Run()
 			local_pos_sp.timestamp = hrt_absolute_time();
 			_local_pos_sp_pub.publish(local_pos_sp);
 
-			// prisma_virtual_acc_setpoint_s mu_sp;
-			// _control.getControlOutput(&mu_sp);
-			// _virtual_acc_sp_pub.publish(mu_sp);
-
 			// Publish the output of the position controller
-			prisma_geom_pos_out_s pos_out;
+			POS_OUT_S pos_out;
 			_control.getControlOutput(&pos_out);
-			_geom_pos_out_pub.publish(pos_out);
+			_pos_out_pub.publish(pos_out);
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes

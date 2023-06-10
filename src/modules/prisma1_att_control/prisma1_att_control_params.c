@@ -1,12 +1,12 @@
 /**
- * Geometric tracking controller Kr for x-y axes
+ * Geometric tracking / tilting controller Kr for x-y axes
  *
  * @decimal 2
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_KR_XY, 0.65f);
 /**
- * Geometric tracking controller Kr for z axis
+ * Geometric tracking / tilting controller Kr for z axis
  *
  * @decimal 2
  * @group PRISMA
@@ -26,6 +26,20 @@ PARAM_DEFINE_FLOAT(PRISMA_KOM_XY, 0.3f);
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_KOM_Z, 0.11f);
+/**
+ * Tilting controller Kq for xy
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KQ_XY, 0.3f);
+/**
+ * Tilting controller Kq for z
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KQ_Z, 0.11f);
 /**
  * Geometric tracking controller Ki_att for xy
  *

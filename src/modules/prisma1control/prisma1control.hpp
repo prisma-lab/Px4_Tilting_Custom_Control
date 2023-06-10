@@ -38,6 +38,7 @@
 
 #include "PositionControlBase/PositionControlPass.hpp"
 #include "PositionControlBase/PositionControlGeom.hpp"
+#include "PositionControlBase/PositionControlTilt.hpp"
 
 #include <modules/mc_pos_control/Takeoff/Takeoff.hpp>
 
@@ -74,6 +75,25 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/prisma_virtual_acc_setpoint.h>
 #include <uORB/topics/prisma_geom_pos_out.h>
+#include <uORB/topics/prisma_tilt_pos_out.h>
+
+#define TILT_CONTROL
+// #define GEOM_CONTROL
+// #define PASS_CONTROL
+
+#if defined GEOM_CONTROL
+	#define POS_OUT_S prisma_geom_pos_out_s
+	#define POS_OUT_ORB_ID ORB_ID(prisma_geom_pos_out)
+	#define CONTROL_TYPE PositionControlGeom
+#elif defined PASS_CONTROL
+	#define POS_OUT_S prisma_virtual_acc_setpoint_s
+	#define POS_OUT_ORB_ID ORB_ID(prisma_virtual_acc_setpoint)
+	#define CONTROL_TYPE PositionControlPass
+#elif defined TILT_CONTROL
+	#define POS_OUT_S prisma_tilt_pos_out_s
+	#define POS_OUT_ORB_ID ORB_ID(prisma_tilt_pos_out)
+	#define CONTROL_TYPE PositionControlTilt
+#endif
 
 using namespace time_literals;
 
@@ -119,8 +139,7 @@ private:
 	PositionControlInput set_control_input(const vehicle_local_position_setpoint_s &setpoint);
 
 	// Publications
-	uORB::Publication<prisma_virtual_acc_setpoint_s> _virtual_acc_sp_pub{ORB_ID(prisma_virtual_acc_sp)};
-	uORB::Publication<prisma_geom_pos_out_s> _geom_pos_out_pub{ORB_ID(prisma_geom_pos_out)};
+	uORB::Publication<POS_OUT_S> _pos_out_pub{POS_OUT_ORB_ID};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub {ORB_ID(takeoff_status)};
 
@@ -160,10 +179,8 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	//PositionControl _control;  /**< class for core PID position control */
-
-	PositionControlGeom _control;
-
+	CONTROL_TYPE _control;
+	
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe{false};  /**< true if failsafe was entered within current cycle */
@@ -200,9 +217,9 @@ private:
 		(ParamFloat<px4::params::PRISMA_KD_Z>) _param_z_v,
 		(ParamFloat<px4::params::PRISMA_KI_XY>) _param_xy_i,
 		(ParamFloat<px4::params::PRISMA_KI_Z>) _param_z_i,
+		(ParamFloat<px4::params::PRISMA_MASS>) _param_mass,
 		(ParamFloat<px4::params::PRISMA_C1>) _param_c1,
-		(ParamFloat<px4::params::PRISMA_SIGMA>) _param_sigma,
-		(ParamFloat<px4::params::PRISMA_MASS>) _param_mass
+		(ParamFloat<px4::params::PRISMA_SIGMA>) _param_sigma
 	);
 
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);

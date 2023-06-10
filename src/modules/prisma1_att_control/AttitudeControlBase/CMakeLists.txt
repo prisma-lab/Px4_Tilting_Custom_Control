@@ -48,4 +48,10 @@ px4_add_library(AttitudeControlGeom
 )
 target_include_directories(AttitudeControlGeom PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+px4_add_library(AttitudeControlTilt
+	AttitudeControlTilt.hpp
+	AttitudeControlTilt.cpp
+)
+target_include_directories(AttitudeControlTilt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 #px4_add_unit_gtest(SRC ControlBase.cpp LINKLIBS ControlBase)

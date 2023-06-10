@@ -38,14 +38,20 @@ void Prisma1AttitudeControl::parameters_update(bool force)
 		// update parameters from storage
 		ModuleParams::updateParams();
 
-		_control.setKr(Vector3f(_param_xy_kr.get(), _param_xy_kr.get(), _param_z_kr.get()));
-		_control.setKom(Vector3f(_param_xy_kom.get(), _param_xy_kom.get(), _param_z_kom.get()));
-		_control.setKi(Vector3f(_param_xy_ki.get(), _param_xy_ki.get(), _param_z_ki.get()));
-		_control.setC2(_param_c2.get());
 		_control.setMass(_param_mass.get());
 		_control.setIb(_param_ibx.get(), _param_iby.get(), _param_ibz.get());
 		_control.setThrust(_param_thr.get());
 		_control.setXYZTorque(_param_x_tor.get(), _param_y_tor.get(), _param_z_tor.get());
+		#if defined GEOM_CONTROL
+		_control.setKr(Vector3f(_param_xy_kr.get(), _param_xy_kr.get(), _param_z_kr.get()));
+		_control.setKom(Vector3f(_param_xy_kom.get(), _param_xy_kom.get(), _param_z_kom.get()));
+		_control.setKi(Vector3f(_param_xy_ki.get(), _param_xy_ki.get(), _param_z_ki.get()));
+		_control.setC2(_param_c2.get());
+		#elif defined TILT_CONTROL
+		_control.setKr(Vector3f(_param_xy_kr.get(), _param_xy_kr.get(), _param_z_kr.get()));
+		_control.setKq(Vector3f(_param_xy_kq.get(), _param_xy_kq.get(), _param_z_kq.get()));
+		#elif defined PASS_CONTROL
+		#endif
 	}
 }
 

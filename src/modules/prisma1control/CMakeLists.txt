@@ -43,6 +43,7 @@ px4_add_module(
 	DEPENDS
 		PositionControlPass
 		PositionControlGeom
+		PositionControlTilt
 		controllib
 		geo
 		SlewRate

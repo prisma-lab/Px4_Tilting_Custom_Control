@@ -43,6 +43,7 @@ px4_add_module(
 	DEPENDS
 		AttitudeControlPass
 		AttitudeControlGeom
+		AttitudeControlTilt
 		controllib
 		mathlib
 		px4_work_queue
