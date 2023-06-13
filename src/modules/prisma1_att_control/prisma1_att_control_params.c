@@ -1,4 +1,18 @@
 /**
+ * Tilting controller Ki for attitude for x-y axes
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_ATTKI_XY, 0.01f);
+/**
+ * Tilting controller Ki for attitude for z axis
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_ATTKI_Z, 0.01f);
+/**
  * Geometric tracking / tilting controller Kr for x-y axes
  *
  * @decimal 2
@@ -110,3 +124,14 @@ PARAM_DEFINE_FLOAT(PRISMA_Y_TOR, 1.837f);
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_Z_TOR, 0.848f);
+/**
+ * Define what angle the joystick controls
+ *
+ * @min 0
+ * @max 2
+ * @group PRISMA
+ * @value 0 Roll
+ * @value 1 Pitch
+ * @value 2 Yaw
+ */
+PARAM_DEFINE_INT32(PRISMA_ANG_MODE, 2);

@@ -48,8 +48,10 @@ void Prisma1AttitudeControl::parameters_update(bool force)
 		_control.setKi(Vector3f(_param_xy_ki.get(), _param_xy_ki.get(), _param_z_ki.get()));
 		_control.setC2(_param_c2.get());
 		#elif defined TILT_CONTROL
+		_control.setKi(Vector3f(_param_xy_att_ki.get(), _param_xy_att_ki.get(), _param_z_att_ki.get()));
 		_control.setKr(Vector3f(_param_xy_kr.get(), _param_xy_kr.get(), _param_z_kr.get()));
 		_control.setKq(Vector3f(_param_xy_kq.get(), _param_xy_kq.get(), _param_z_kq.get()));
+		_control.setAngleInputMode(_param_angleInputMode.get());
 		#elif defined PASS_CONTROL
 		#endif
 	}
@@ -113,10 +115,6 @@ void Prisma1AttitudeControl::Run()
 
 		if (_vehicle_control_mode.flag_control_prisma_enabled) {
 			
-			if(!_is_active){
-				_control.resetIntegral();
-				_is_active = true;
-			}
 
 			if(_trajectory_setpoint_sub.updated())
 				_trajectory_setpoint_sub.update(&_traj_sp);
@@ -135,6 +133,15 @@ void Prisma1AttitudeControl::Run()
 			_control.setInputSetpoint(_setpoint);
 
 			_control.setState(state);
+
+			if(!_is_active){
+				_control.resetIntegral();
+				_is_active = true;
+
+				#ifdef TILT_CONTROL
+				_control.resetBuffers();
+				#endif
+			}
 
 			// Run position control
 			if (_control.update(dt)) {

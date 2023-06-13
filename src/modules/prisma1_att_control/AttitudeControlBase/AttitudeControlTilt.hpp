@@ -20,12 +20,16 @@ public:
 	void setInputSetpoint(const AttitudeControlInput &setpoint) override;
 	void setState(const AttitudeControlState &state) override;
 
+	void setKi(const matrix::Vector3f K);
 	void setKr(const matrix::Vector3f K);
 	void setKq(const matrix::Vector3f K);
 	void setMass(const float m);
 	void setIb(const float Ibx, const float Iby, const float Ibz);
 
-	virtual void resetIntegral() override {};
+	void setAngleInputMode(unsigned int mode); //< 0:Roll, 1:Pitch, 2:Yaw
+
+	virtual void resetIntegral() override {_integral.setZero();};
+	virtual void resetBuffers();
 
 private:
 	uORB::Subscription _tilt_pos_out_sub {ORB_ID(prisma_tilt_pos_out)};
@@ -33,6 +37,8 @@ private:
 	void _attitudeController();
 
 	void _normalization();
+
+	unsigned int _angleInputMode = 2;
 
 	float _mass;
 	matrix::SquareMatrix3f _Ib;
@@ -42,6 +48,7 @@ private:
 
 	matrix::Vector3f _Kr; ///< Velocity control proportional gain
 	matrix::Vector3f _Kq; ///< Velocity control proportional gain
+	matrix::Vector3f _Ki; ///< Velocity control proportional gain
 
 	// States
 
@@ -52,6 +59,8 @@ private:
 	matrix::Vector3f _f_w; ///< Desired force in the world frame = thrust
 
 	// Control variables	
+	matrix::Vector3f _integral;	
+	float _rpy_sp_buffer[3] = {0.0f, 0.0f, 0.0f};
 
 	// Filters and derivatives
 

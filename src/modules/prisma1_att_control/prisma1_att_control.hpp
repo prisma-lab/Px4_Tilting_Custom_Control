@@ -111,6 +111,8 @@ private:
 		(ParamFloat<px4::params::PRISMA_IBY>) _param_iby,
 		(ParamFloat<px4::params::PRISMA_IBZ>) _param_ibz,
 		(ParamFloat<px4::params::PRISMA_MASS>) _param_mass,
+		(ParamFloat<px4::params::PRISMA_ATTKI_XY>) _param_xy_att_ki,
+		(ParamFloat<px4::params::PRISMA_ATTKI_Z>) _param_z_att_ki,
 		(ParamFloat<px4::params::PRISMA_KR_XY>) _param_xy_kr,
 		(ParamFloat<px4::params::PRISMA_KR_Z>) _param_z_kr,
 		(ParamFloat<px4::params::PRISMA_KOM_XY>) _param_xy_kom,
@@ -119,6 +121,7 @@ private:
 		(ParamFloat<px4::params::PRISMA_KI_ATT_Z>) _param_z_ki,
 		(ParamFloat<px4::params::PRISMA_C2>) _param_c2,
 		(ParamFloat<px4::params::PRISMA_KQ_XY>) _param_xy_kq,
-		(ParamFloat<px4::params::PRISMA_KQ_Z>) _param_z_kq
+		(ParamFloat<px4::params::PRISMA_KQ_Z>) _param_z_kq,
+		(ParamInt<px4::params::PRISMA_ANG_MODE>) _param_angleInputMode
 	);
 };

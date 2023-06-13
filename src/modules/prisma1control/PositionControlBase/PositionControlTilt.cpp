@@ -40,6 +40,12 @@ void PositionControlTilt::_positionController(){
 	Vector3f e =  _input.position_sp - _state.position;
 	Vector3f e_dot =  _input.velocity_sp - _state.velocity;
 
+	if(!_counter){
+		// PX4_INFO("------------------------------");
+		// PX4_INFO("Input acceleration: %f, %f, %f",
+		// 	(double)_input.acceleration_sp(0), (double)_input.acceleration_sp(1), (double)_input.acceleration_sp(2));
+	}
+
 	PrismaControlMath::setZeroIfNanVector3f(e);
 	PrismaControlMath::setZeroIfNanVector3f(e_dot);
 	PrismaControlMath::setZeroIfNanVector3f(_input.acceleration_sp);
@@ -55,13 +61,13 @@ void PositionControlTilt::_positionController(){
 	Dcmf Rb(att_q);
 
 	_f_w = e.emult(_Kx) + e_dot.emult(_Kv) + _integral.emult(_Ki) \
-					+ _mass * Vector3f(0.0f, 0.0f, -G) + _mass * _input.acceleration_sp;
+					+ _mass * Vector3f(0.0f, 0.0f, -G) + _input.acceleration_sp;
 	_f_b = Rb * _f_w;
 
 	if(!_counter){
-		//PX4_INFO("------------------------------");
-		//PX4_INFO("Input acceleration: %f, %f, %f",
-		//	(double)_input.acceleration_sp(0), (double)_input.acceleration_sp(1), (double)_input.acceleration_sp(2));
+		// PX4_INFO("------------------------------");
+		// PX4_INFO("Thrust: %f, %f, %f",
+		// 	(double)_f_b(0), (double)_f_b(1), (double)_f_b(2));
 	}
 
 }

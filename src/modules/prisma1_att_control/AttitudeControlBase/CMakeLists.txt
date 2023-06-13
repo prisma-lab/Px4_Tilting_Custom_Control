@@ -49,6 +49,8 @@ px4_add_library(AttitudeControlGeom
 target_include_directories(AttitudeControlGeom PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_library(AttitudeControlTilt
+	ControlMath.cpp
+	ControlMath.hpp
 	AttitudeControlTilt.hpp
 	AttitudeControlTilt.cpp
 )
