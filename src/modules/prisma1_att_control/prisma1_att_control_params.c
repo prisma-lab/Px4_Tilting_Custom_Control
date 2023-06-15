@@ -1,18 +1,4 @@
 /**
- * Tilting controller Ki for attitude for x-y axes
- *
- * @decimal 2
- * @group PRISMA
- */
-PARAM_DEFINE_FLOAT(PRISMA_ATTKI_XY, 0.01f);
-/**
- * Tilting controller Ki for attitude for z axis
- *
- * @decimal 2
- * @group PRISMA
- */
-PARAM_DEFINE_FLOAT(PRISMA_ATTKI_Z, 0.01f);
-/**
  * Geometric tracking / tilting controller Kr for x-y axes
  *
  * @decimal 2

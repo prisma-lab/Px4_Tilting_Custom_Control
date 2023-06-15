@@ -20,7 +20,6 @@ public:
 	void setInputSetpoint(const AttitudeControlInput &setpoint) override;
 	void setState(const AttitudeControlState &state) override;
 
-	void setKi(const matrix::Vector3f K);
 	void setKr(const matrix::Vector3f K);
 	void setKq(const matrix::Vector3f K);
 	void setMass(const float m);
@@ -48,7 +47,6 @@ private:
 
 	matrix::Vector3f _Kr; ///< Velocity control proportional gain
 	matrix::Vector3f _Kq; ///< Velocity control proportional gain
-	matrix::Vector3f _Ki; ///< Velocity control proportional gain
 
 	// States
 

@@ -27,17 +27,17 @@
 #####
 rtps:
   # topic ID 1
-  # - msg:     debug_array
-  #   receive: true
+  - msg:     debug_array
+    receive: true
   # topic ID 2
-  # - msg:     debug_key_value
-  #   receive: true
+  - msg:     debug_key_value
+    receive: true
   # topic ID 3
-  # - msg:     debug_value
-  #   receive: true
+  - msg:     debug_value
+    receive: true
   # ...
-  # - msg:     debug_vect
-  #   receive: true
+  - msg:     debug_vect
+    receive: true
   - msg:     offboard_control_mode
     receive: true
   - msg:     optical_flow

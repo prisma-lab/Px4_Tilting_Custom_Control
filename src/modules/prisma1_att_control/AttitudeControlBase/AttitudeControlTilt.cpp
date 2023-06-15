@@ -20,10 +20,6 @@ AttitudeControlTilt::AttitudeControlTilt() {
 	_Kq(1) = 5.0f;
 	_Kq(2) = 10.0f;
 
-	_Ki(0) = 0.01f;
-	_Ki(1) = 0.01f;
-	_Ki(2) = 0.01f;
-
 	_counter = 0;
 
 	_integral.setZero();
@@ -35,7 +31,7 @@ AttitudeControlTilt::AttitudeControlTilt() {
 bool AttitudeControlTilt::update(const float dt){
 	AttitudeControlBase::update(dt);
 
-	_counter = (_counter+1)%200;
+	_counter = (_counter+1)%100;
 
 	_attitudeController();
 
@@ -54,8 +50,8 @@ void AttitudeControlTilt::_attitudeController() {
 		_rpy_sp_buffer[_angleInputMode] = _input.yaw_sp;
 	}
 
-	_rpy_sp_buffer[0] = math::constrain(_rpy_sp_buffer[0], -0.5f, 0.5f);
-	_rpy_sp_buffer[1] = math::constrain(_rpy_sp_buffer[1], -0.5f, 0.5f);
+	_rpy_sp_buffer[0] = math::constrain(_rpy_sp_buffer[0], -0.3f, 0.3f);
+	_rpy_sp_buffer[1] = math::constrain(_rpy_sp_buffer[1], -0.3f, 0.3f);
 
 	_thrust_sp = _R.transpose() * _f_w;
 
@@ -69,8 +65,6 @@ void AttitudeControlTilt::_attitudeController() {
 
 	Vector3f w_err = _w_sp - _state.angular_velocity;
 
-	//_integral += _w_sp * _dt;
-
 	_torque_sp = w_err.emult(_Kr) + _state.angular_velocity.cross(_Ib*_state.angular_velocity);
 	
 	Eulerf att(_state.attitude);
@@ -78,14 +72,18 @@ void AttitudeControlTilt::_attitudeController() {
 		PX4_INFO("--------------------");
 		// PX4_INFO("thrust: %f, %f, %f",
 		// 	(double)_thrust_sp(0), (double)_thrust_sp(1), (double)_thrust_sp(2));
-		PX4_INFO("Roll_dot setpoint:   %f",
-			(double)_input.yaw_dot_sp);
+		// PX4_INFO("Roll_dot setpoint:   %f",
+		// 	(double)_input.yaw_dot_sp);
 		PX4_INFO("Roll - setpoint - error:   %f, %f, %f",
 			(double)att.phi(), (double)_rpy_sp_buffer[0], (double)Eulerf(q_err).phi());
 		PX4_INFO("Pitch - setpoint - error:  %f, %f, %f",
 			(double)att.theta(), (double)_rpy_sp_buffer[1], (double)Eulerf(q_err).theta());
 		PX4_INFO("Yaw - setpoint - error:    %f, %f, %f",
 			(double)att.psi(), (double)_rpy_sp_buffer[2], (double)Eulerf(q_err).psi());
+		// PX4_INFO("w_sp: %f, %f, %f",
+		// 	(double)_w_sp(0), (double)_w_sp(1), (double)_w_sp(2));
+		// PX4_INFO("w_err: %f, %f, %f",
+		// 	(double)w_err(0), (double)w_err(1), (double)w_err(2));
 	}
 }
 
@@ -106,12 +104,14 @@ void AttitudeControlTilt::_normalization() {
 	for(int i=0; i<3; i++)
 		_torque_sp(i) = math::constrain(_torque_sp(i), -1.0f, 1.0f);
 
+	//_torque_sp(2) = 0.0f;
+
 	if(!_counter){
 		// PX4_INFO("------------------------------");
-		// PX4_INFO("thrust: %f, %f, %f",
-		// 	(double)_thrust_sp(0), (double)_thrust_sp(1), (double)_thrust_sp(2));
-		// PX4_INFO("torque: %f, %f, %f",
-		// 	(double)_torque_sp(0), (double)_torque_sp(1), (double)_torque_sp(2));
+		PX4_INFO("thrust: %f, %f, %f",
+			(double)_thrust_sp(0), (double)_thrust_sp(1), (double)_thrust_sp(2));
+		PX4_INFO("torque: %f, %f, %f",
+			(double)_torque_sp(0), (double)_torque_sp(1), (double)_torque_sp(2));
 	}
 }
 
@@ -137,12 +137,6 @@ void AttitudeControlTilt::setState(const AttitudeControlState &state) {
 	AttitudeControlBase::setState(state);
 
 	_R = Dcmf(_state.attitude);
-}
-
-void AttitudeControlTilt::setKi(Vector3f K) {
-	_Ki(0) = K(0);
-	_Ki(1) = K(1);
-	_Ki(2) = K(2);
 }
 
 void AttitudeControlTilt::setKr(Vector3f K) {

@@ -192,7 +192,7 @@ ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 // int
 // ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
 // 		EffectivenessMatrix &effectiveness, int actuator_start_index)
-/*** CUSOTM ***/
+/*** CUSTOM ***/
 int
 ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
 		EffectivenessMatrix &effectiveness, int actuator_start_index,
@@ -289,6 +289,8 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 			// PX4_INFO("atan2: %f \n", (double)rotor_angle);
 			// PX4_INFO("Pos: %f %f %f \n", (double)position(0), (double)position(1), (double)position(2));
 			// PX4_INFO("ct: %f \n", (double)ct);
+			// PX4_INFO("km: %f \n", (double)km);
+			// PX4_INFO("Horizontal matrix: %d \n", horizontal_matrix ? 1:0);
 
 			// TO DO: check if is better to use ct here or not
 

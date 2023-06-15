@@ -61,7 +61,7 @@ void PositionControlTilt::_positionController(){
 	Dcmf Rb(att_q);
 
 	_f_w = e.emult(_Kx) + e_dot.emult(_Kv) + _integral.emult(_Ki) \
-					+ _mass * Vector3f(0.0f, 0.0f, -G) + _input.acceleration_sp;
+					+ _mass * Vector3f(0.0f, 0.0f, -G) + _mass * _input.acceleration_sp;
 	_f_b = Rb * _f_w;
 
 	if(!_counter){
