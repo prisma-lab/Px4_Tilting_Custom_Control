@@ -133,12 +133,16 @@ void Prisma1AttitudeControl::Run()
 
 			_control.setState(state);
 
+			#ifdef TILT_CONTROL
+			_control.setOffboard(_vehicle_control_mode.flag_control_offboard_enabled);
+			#endif
+
 			if(!_is_active){
 				_control.resetIntegral();
 				_is_active = true;
 
 				#ifdef TILT_CONTROL
-				//_control.resetBuffers();
+				_control.resetBuffers();
 				#endif
 			}
 
@@ -162,6 +166,7 @@ void Prisma1AttitudeControl::Run()
 			actuators.control[1] = torque_sp.xyz[1];
 			actuators.control[2] = torque_sp.xyz[2];
 			actuators.control[3] = -thrust_sp.xyz[2];
+			actuators.control[7] = -1;
 			actuators.timestamp = thrust_sp.timestamp;
 
 

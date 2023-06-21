@@ -19,6 +19,7 @@ public:
 
 	void setInputSetpoint(const AttitudeControlInput &setpoint) override;
 	void setState(const AttitudeControlState &state) override;
+	void setOffboard(const bool offboard) { _offboard = offboard; };
 
 	void setKr(const matrix::Vector3f K);
 	void setKq(const matrix::Vector3f K);
@@ -59,6 +60,10 @@ private:
 	// Control variables	
 	matrix::Vector3f _integral;	
 	float _rpy_sp_buffer[3] = {0.0f, 0.0f, 0.0f};
+	matrix::Quaternionf _q_buf;
+	matrix::Dcmf _rotmat_buf;
+	bool _offboard{false};
+	float _q_signum{1.0f};
 
 	// Filters and derivatives
 

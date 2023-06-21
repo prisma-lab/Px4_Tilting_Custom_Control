@@ -652,6 +652,9 @@ static inline navigation_mode_t navigation_mode(uint8_t main_state)
 	case commander_state_s::MAIN_STATE_ORBIT: return navigation_mode_t::orbit;
 
 	case commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF: return navigation_mode_t::auto_vtol_takeoff;
+	
+	case commander_state_s::MAIN_STATE_PRISMA_MAN: return navigation_mode_t::prisma_man;
+
 	}
 
 	static_assert(commander_state_s::MAIN_STATE_MAX - 1 == (int)navigation_mode_t::auto_vtol_takeoff,
@@ -3461,6 +3464,11 @@ Commander::update_control_mode()
 
 	switch (_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_PRISMA_1:
+		_vehicle_control_mode.flag_control_offboard_enabled = true;
+		_vehicle_control_mode.flag_control_prisma_enabled = true;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN:
 		_vehicle_control_mode.flag_control_prisma_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
