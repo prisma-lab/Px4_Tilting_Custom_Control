@@ -211,17 +211,19 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>)  _param_mpc_tiltmax_lnd,  /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)  _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
-		(ParamFloat<px4::params::PRISMA_KP_XY>) _param_xy_p,
-		(ParamFloat<px4::params::PRISMA_KP_Z>) _param_z_p,
-		(ParamFloat<px4::params::PRISMA_KD_XY>) _param_xy_v,
-		(ParamFloat<px4::params::PRISMA_KD_Z>) _param_z_v,
-		(ParamFloat<px4::params::PRISMA_KI_XY>) _param_xy_i,
-		(ParamFloat<px4::params::PRISMA_KI_Z>) _param_z_i,
-		(ParamFloat<px4::params::PRISMA_MASS>) _param_mass,
-		(ParamFloat<px4::params::PRISMA_C1>) _param_c1,
-		(ParamFloat<px4::params::PRISMA_SIGMA>) _param_sigma
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>)   _param_mpc_land_speed,
+		(ParamFloat<px4::params::PRISMA_KP_XY>)     _param_xy_p,
+		(ParamFloat<px4::params::PRISMA_KP_Z>)      _param_z_p,
+		(ParamFloat<px4::params::PRISMA_KD_XY>)     _param_xy_v,
+		(ParamFloat<px4::params::PRISMA_KD_Z>)      _param_z_v,
+		(ParamFloat<px4::params::PRISMA_KI_XY>)     _param_xy_i,
+		(ParamFloat<px4::params::PRISMA_KI_Z>)      _param_z_i,
+		(ParamFloat<px4::params::PRISMA_MASS>)      _param_mass,
+		(ParamFloat<px4::params::PRISMA_C1>)        _param_c1,
+		(ParamFloat<px4::params::PRISMA_SIGMA>)     _param_sigma
 	);
-
+	
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
 };
 

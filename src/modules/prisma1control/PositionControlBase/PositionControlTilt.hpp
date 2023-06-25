@@ -6,6 +6,7 @@
 #include <uORB/topics/prisma_tilt_pos_out.h>
 #include <uORB/topics/vehicle_attitude.h>
 
+
 class PositionControlTilt : public PositionControlBase {
 public:
 	PositionControlTilt();
@@ -19,6 +20,8 @@ public:
 	void setVelGains(matrix::Vector3f D);
 	void setIntGains(matrix::Vector3f I);
 	void setMass(const float m);
+
+	virtual void setState(const PositionControlState &state) override;
 	
 	virtual void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &setpoint) override;
 	virtual void resetIntegral() override;
@@ -42,5 +45,8 @@ private:
 	matrix::Vector3f _integral;
 
 	long _counter;
+
+	// Variables for control
+	matrix::Vector3f _pos_setpoint; // Saved setpoint
 
 };

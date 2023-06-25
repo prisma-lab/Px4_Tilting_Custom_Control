@@ -33,7 +33,7 @@ public:
 	 * Pass the current vehicle state to the controller
 	 * @param ControlStates structure
 	 */
-	void setState(const PositionControlState &state) {
+	virtual void setState(const PositionControlState &state) {
 		_state = state;
 	};
 

@@ -3,6 +3,7 @@
 
 using namespace matrix;
 
+
 PositionControlTilt::PositionControlTilt() {
 
 	_mass = 1.5f;
@@ -37,14 +38,24 @@ bool PositionControlTilt::update(const float dt){
 
 void PositionControlTilt::_positionController(){
 
-	Vector3f e =  _input.position_sp - _state.position;
-	Vector3f e_dot =  _input.velocity_sp - _state.velocity;
-
-	if(!_counter){
-		// PX4_INFO("------------------------------");
-		// PX4_INFO("Input acceleration: %f, %f, %f",
-		// 	(double)_input.acceleration_sp(0), (double)_input.acceleration_sp(1), (double)_input.acceleration_sp(2));
+	for(int i = 0; i < 3; i++) {
+		if(!PX4_ISFINITE(_input.position_sp(i))) {
+			// Altitude is being controlled through velocity/acceleration
+			_pos_setpoint(i) += _input.velocity_sp(i) * _dt + 0.5f * _input.acceleration_sp(i) * powf(_dt, 2);
+		}
+		else {
+			_pos_setpoint(i) = _input.position_sp(i);
+		}
 	}
+
+	// if(!_counter) {
+	// 	PX4_INFO("------");
+	// 	PX4_INFO("Saved position:           %f, %f, %f",
+	// 				(double)_pos_setpoint(0), (double)_pos_setpoint(1), (double)_pos_setpoint(2));
+	// }
+
+	Vector3f e =  _pos_setpoint - _state.position;
+	Vector3f e_dot =  _input.velocity_sp - _state.velocity;
 
 	PrismaControlMath::setZeroIfNanVector3f(e);
 	PrismaControlMath::setZeroIfNanVector3f(e_dot);
@@ -63,13 +74,6 @@ void PositionControlTilt::_positionController(){
 	_f_w = e.emult(_Kx) + e_dot.emult(_Kv) + _integral.emult(_Ki) \
 					+ _mass * Vector3f(0.0f, 0.0f, -G) + _input.acceleration_sp;
 	_f_b = Rb.transpose() * _f_w;
-
-	if(!_counter){
-		// PX4_INFO("------------------------------");
-		// PX4_INFO("Thrust: %f, %f, %f",
-		// 	(double)_f_b(0), (double)_f_b(1), (double)_f_b(2));
-	}
-
 }
 
 void PositionControlTilt::getControlOutput(void *out) {
@@ -116,6 +120,16 @@ void PositionControlTilt::getLocalPositionSetpoint(vehicle_local_position_setpoi
 	setpoint.vz = _input.velocity_sp(2);
 	_input.acceleration_sp.copyTo(setpoint.acceleration);
 	_f_b.copyTo(setpoint.thrust);
+}
+
+void PositionControlTilt::setState(const PositionControlState &state) {
+	static bool first_state = true;
+	PositionControlBase::setState(state);
+
+	if(first_state) {
+		_pos_setpoint = state.position;
+		first_state = false;
+	}
 }
 
 void PositionControlTilt::resetIntegral()

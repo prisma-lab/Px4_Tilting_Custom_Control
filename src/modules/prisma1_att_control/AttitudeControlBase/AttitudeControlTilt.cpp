@@ -48,8 +48,6 @@ void AttitudeControlTilt::_attitudeController()
 	PrismaControlMath::setZeroIfNan(_input.yaw_dot_sp);
 	PrismaControlMath::setZeroIfNan(_input.yaw_ddot_sp);
 
-	// Quaternionf q_rot1(0.0f, 0.0f, 0.0f, 1.0f);
-	Quaternionf q_rot1(0.7071068f, 0.0f, 0.0f, -0.7071068f);
 	Quaternionf q_rot(1.0f, 0.0f, 0.0f, 0.0f);
 	Vector3f rot_axis = Dcmf(_q_buf).col(_angleInputMode);
 	if (!_offboard)
@@ -87,13 +85,14 @@ void AttitudeControlTilt::_attitudeController()
 	Quaternionf q_des(Eulerf(0.3f, 0.0f, _rpy_sp_buffer[2]));
 
 	q_des = _q_buf;
+	// _q_buf = Quaternionf(0.0871557f, 0.0f, 0.0f, 0.9961947f);
 	Quaternionf q1 = (_q_buf).normalized();
 	Quaternionf q2 = (_state.attitude).inversed().normalized();
 	Quaternionf q_err = q2 * q1;
 	q_err.normalize();
 
-	_w_sp = Vector3f(q_err(1), q_err(2), q_err(3)).emult(_Kq) * sign(q_err(0));
-	// _w_sp *= q_err(0) > 0.0f ? 1.0f : -1.0f;
+	_w_sp = Vector3f(q_err(1), q_err(2), q_err(3)).emult(_Kq);// * sign(q_err(0));
+	_w_sp *= q_err(0) > 0.0f ? 1.0f : -1.0f;
 
 	Vector3f w_err = _w_sp - _state.angular_velocity;
 
@@ -104,7 +103,7 @@ void AttitudeControlTilt::_attitudeController()
 	Eulerf eul_des(_q_buf);
 	if (!_counter)
 	{
-		PX4_INFO("--------------------");
+		// PX4_INFO("--------------------");
 
 		// PX4_INFO("Roll - setpoint - error:   %f, %f, %f",
 		// 	(double)att.phi(), (double)_rpy_sp_buffer[0], (double)Eulerf(q_err).phi());
@@ -118,23 +117,22 @@ void AttitudeControlTilt::_attitudeController()
 		// PX4_INFO("w_err: %f, %f, %f",
 		// 	(double)w_err(0), (double)w_err(1), (double)w_err(2));
 		
-		PX4_INFO("Roll - Pitch - Yaw SP:      %f, %f, %f",
-			(double)eul_des.phi(), (double)eul_des.theta(), (double)eul_des.psi());
+		// PX4_INFO("Roll - Pitch - Yaw SP:      %f, %f, %f",
+		// 	(double)eul_des.phi(), (double)eul_des.theta(), (double)eul_des.psi());
 
-			// (double)_rpy_sp_buffer[0], (double)_rpy_sp_buffer[1], (double)_rpy_sp_buffer[2]);
-		PX4_INFO( "Roll - Pitch - Yaw:        %f, %f, %f",
-			(double)att.phi(), (double)att.theta(), (double)att.psi());
-		PX4_INFO( "Roll - Pitch - Yaw ER:     %f, %f, %f",
-			(double)err_eul.phi(), (double)err_eul.theta(), (double)err_eul.psi());
-		PX4_INFO("---");
-		PX4_INFO("q:      %f, %f, %f, %f",
-						 (double)_state.attitude(0), (double)_state.attitude(1), (double)_state.attitude(2), (double)_state.attitude(3));
-		PX4_INFO("q_des:  %f, %f, %f, %f",
-						 (double)_q_buf(0), (double)_q_buf(1), (double)_q_buf(2), (double)_q_buf(3));
-		PX4_INFO("q_err:      %f, %f, %f, %f",
-			(double)q_err(0), (double)q_err(1), (double)q_err(2), (double)q_err(3));
-		PX4_INFO("q2:      %f, %f, %f, %f",
-			(double)q2(0), (double)q2(1), (double)q2(2), (double)q2(3));
+		// PX4_INFO( "Roll - Pitch - Yaw:        %f, %f, %f",
+		// 	(double)att.phi(), (double)att.theta(), (double)att.psi());
+		// PX4_INFO( "Roll - Pitch - Yaw ER:     %f, %f, %f",
+		// 	(double)err_eul.phi(), (double)err_eul.theta(), (double)err_eul.psi());
+		// PX4_INFO("---");
+		// PX4_INFO("q:      %f, %f, %f, %f",
+		// 				 (double)_state.attitude(0), (double)_state.attitude(1), (double)_state.attitude(2), (double)_state.attitude(3));
+		// PX4_INFO("q_des:  %f, %f, %f, %f",
+		// 				 (double)_q_buf(0), (double)_q_buf(1), (double)_q_buf(2), (double)_q_buf(3));
+		// PX4_INFO("q_err:      %f, %f, %f, %f",
+		// 	(double)q_err(0), (double)q_err(1), (double)q_err(2), (double)q_err(3));
+		// PX4_INFO("q2:      %f, %f, %f, %f",
+		// 	(double)q2(0), (double)q2(1), (double)q2(2), (double)q2(3));
 	}
 }
 
@@ -162,13 +160,14 @@ void AttitudeControlTilt::_normalization()
 	if (!_counter)
 	{
 		// PX4_INFO("------------------------------");
-		PX4_INFO("---");
-		PX4_INFO("thrust: %f, %f, %f",
-			(double)_thrust_sp(0), (double)_thrust_sp(1), (double)_thrust_sp(2));
-		PX4_INFO("torque: %f, %f, %f",
-			(double)_torque_sp(0), (double)_torque_sp(1), (double)_torque_sp(2));
+		// PX4_INFO("---");
+		// PX4_INFO("thrust: %f, %f, %f",
+		// 	(double)_thrust_sp(0), (double)_thrust_sp(1), (double)_thrust_sp(2));
+		// PX4_INFO("torque: %f, %f, %f",
+		// 	(double)_torque_sp(0), (double)_torque_sp(1), (double)_torque_sp(2));
 	}
 }
+
 
 void AttitudeControlTilt::setInputSetpoint(const AttitudeControlInput &setpoint)
 {
