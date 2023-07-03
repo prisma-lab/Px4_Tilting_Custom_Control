@@ -27,6 +27,11 @@ AttitudeControlTilt::AttitudeControlTilt()
 	_f_w.setZero();
 
 	_roll_sp = _pitch_sp = 0.0f;
+
+	_att_sp.q_d[0] = NAN;
+	_att_sp.q_d[1] = NAN;
+	_att_sp.q_d[2] = NAN;
+	_att_sp.q_d[3] = NAN;
 }
 
 bool AttitudeControlTilt::update(const float dt)
@@ -50,8 +55,7 @@ void AttitudeControlTilt::_attitudeController()
 
 	Quaternionf q_rot(1.0f, 0.0f, 0.0f, 0.0f);
 	Vector3f rot_axis = Dcmf(_q_buf).col(_angleInputMode);
-	if (!_offboard)
-	{
+	if (!_offboard) {
 		if (isnan(_input.yaw_sp))
 		{
 			_input.yaw_sp = _rpy_sp_buffer[_angleInputMode] + _input.yaw_dot_sp*_dt;
@@ -65,12 +69,27 @@ void AttitudeControlTilt::_attitudeController()
 			}
 		}
 	}
-	else
-	{
-		if (!isnan(_input.yaw_sp)){
+	else {
+		if (!isnanf(_input.yaw_sp)){
 			_q_buf = Quaternionf(Eulerf(0.0f, 0.0f, _input.yaw_sp));
-			_rpy_sp_buffer[2] = _input.yaw_sp;
 		}
+
+		if(_tilt_att_sp_sub.updated()) {
+			_tilt_att_sp_sub.update(&_att_sp);
+		}
+		
+		if(!isnanf(_att_sp.q_d[0]) &&
+				!isnanf(_att_sp.q_d[1]) &&
+				!isnanf(_att_sp.q_d[2]) &&
+				!isnanf(_att_sp.q_d[3])) {
+
+			_q_buf = Quaternionf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
+		}
+		
+		// if (!isnanf(_input.yaw_sp)){
+		// 	_q_buf = Quaternionf(Eulerf(0.0f, 0.0f, _input.yaw_sp));
+		// 	_rpy_sp_buffer[2] = _input.yaw_sp;
+		// }
 	}
 
 	_rpy_sp_buffer[0] = math::constrain(_rpy_sp_buffer[0], -0.3f, 0.3f);

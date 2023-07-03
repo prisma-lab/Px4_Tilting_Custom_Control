@@ -3471,7 +3471,13 @@ Commander::update_control_mode()
 
 	case vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN:
 		_vehicle_control_mode.flag_control_prisma_enabled = true;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 		
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:

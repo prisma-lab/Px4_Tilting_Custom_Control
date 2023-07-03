@@ -48,11 +48,11 @@ void PositionControlTilt::_positionController(){
 		}
 	}
 
-	// if(!_counter) {
-	// 	PX4_INFO("------");
-	// 	PX4_INFO("Saved position:           %f, %f, %f",
-	// 				(double)_pos_setpoint(0), (double)_pos_setpoint(1), (double)_pos_setpoint(2));
-	// }
+	if(!_counter) {
+		// PX4_INFO("---------------");
+		// PX4_INFO("Position setpoint: %f, %f, %f",
+		// 			(double)_pos_setpoint(0), (double)_pos_setpoint(1), (double)_pos_setpoint(2));
+	}
 
 	Vector3f e =  _pos_setpoint - _state.position;
 	Vector3f e_dot =  _input.velocity_sp - _state.velocity;

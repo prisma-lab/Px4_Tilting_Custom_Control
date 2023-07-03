@@ -77,6 +77,10 @@
 #include <uORB/topics/prisma_geom_pos_out.h>
 #include <uORB/topics/prisma_tilt_pos_out.h>
 
+#include <uORB/topics/debug_vect.h>
+#include <uORB/topics/debug_key_value.h>
+#include <cstring>
+
 #define TILT_CONTROL
 // #define GEOM_CONTROL
 // #define PASS_CONTROL
@@ -142,6 +146,9 @@ private:
 	uORB::Publication<POS_OUT_S> _pos_out_pub{POS_OUT_ORB_ID};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub {ORB_ID(takeoff_status)};
+	
+	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+	uORB::Publication<debug_key_value_s> _debug_key_value_pub{ORB_ID(debug_key_value)};
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub {this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */

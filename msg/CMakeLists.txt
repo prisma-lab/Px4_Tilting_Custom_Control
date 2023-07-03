@@ -212,7 +212,8 @@ set(msg_files
 	prisma_virtual_acc_setpoint.msg
 	prisma_geom_pos_out.msg
 	prisma_tilt_pos_out.msg
-#*** END-CUSTOM
+	tilting_attitude_setpoint.msg
+	#*** END-CUSTOM
 )
 
 if(NOT px4_constrained_flash_build)

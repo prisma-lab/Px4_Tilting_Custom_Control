@@ -9,6 +9,8 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/prisma_tilt_pos_out.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/tilting_attitude_setpoint.h>
 
 
 class AttitudeControlTilt : public AttitudeControlBase {
@@ -34,6 +36,9 @@ public:
 
 private:
 	uORB::Subscription _tilt_pos_out_sub {ORB_ID(prisma_tilt_pos_out)};
+	uORB::Subscription _tilt_att_sp_sub {ORB_ID(tilting_attitude_setpoint)};
+	uORB::Subscription _pos_sp_sub {ORB_ID(vehicle_local_position_setpoint)};
+	vehicle_local_position_setpoint_s _pos_sp;
 
 	void _attitudeController();
 
@@ -62,6 +67,7 @@ private:
 	matrix::Vector3f _integral;	
 	float _rpy_sp_buffer[3] = {0.0f, 0.0f, 0.0f};
 	matrix::Quaternionf _q_buf;
+	tilting_attitude_setpoint_s _att_sp{};
 	matrix::Dcmf _rotmat_buf;
 	bool _offboard{false};
 	float _q_signum{1.0f};

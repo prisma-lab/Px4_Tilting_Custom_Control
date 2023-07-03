@@ -93,4 +93,7 @@ rtps:
   - msg:     tilting_mc_desired_angles
     receive: true
     send:    true
+  - msg:     tilting_attitude_setpoint
+    receive: true
+    send:    true
 #*** END-CUSTOM ***

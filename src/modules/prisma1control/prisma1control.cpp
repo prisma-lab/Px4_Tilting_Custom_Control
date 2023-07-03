@@ -147,12 +147,48 @@ PositionControlState Prisma1Control::set_vehicle_state(const vehicle_local_posit
 PositionControlInput Prisma1Control::set_control_input(const vehicle_local_position_setpoint_s &setpoint) {
 	PositionControlInput input;
 
+	static int debug_ind = 0;
+	debug_vect_s dbg;
+	debug_key_value_s dbg_kv;
+
 	input.position_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	input.velocity_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	input.acceleration_sp = Vector3f(setpoint.acceleration[0], setpoint.acceleration[1], setpoint.acceleration[2]);
 	input.yaw_sp = setpoint.yaw;
 	input.yaw_dot_sp = setpoint.yawspeed;
 	input.yaw_ddot_sp = 0.0f;
+
+	char name[10];
+	Vector3f vec;
+	switch(debug_ind){
+	case 0:
+		strncpy(name, "pos_sp", sizeof(name));
+		vec = input.position_sp;
+		break;
+	case 1:
+		strncpy(name, "vel_sp", sizeof(name));
+		vec = input.velocity_sp;
+		break;
+	case 2:
+		strncpy(name, "acc_sp", sizeof(name));
+		vec = input.acceleration_sp;
+		break;
+	default:
+		break;
+	}
+
+	// debug_ind = (debug_ind + 1) % 3;
+
+	strncpy(dbg.name, name, sizeof(dbg.name));
+	dbg.x = vec(0);
+	dbg.y = vec(1);
+	dbg.z = vec(2);
+
+	_debug_vect_pub.publish(dbg);
+
+	strncpy(dbg_kv.key, name, sizeof(dbg_kv.key));
+	dbg_kv.value = vec(0);
+	// _debug_key_value_pub.publish(dbg_kv);
 
 	return input;
 }
@@ -319,6 +355,9 @@ void Prisma1Control::Run()
 
 				if (not_taken_off || flying_but_ground_contact) {
 					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+					_setpoint.vx = 0.0f;
+					_setpoint.vy = 0.0f;
+					_setpoint.vz = 0.0f;
 
 					// prevent any integrator windup
 					_control.resetIntegral();

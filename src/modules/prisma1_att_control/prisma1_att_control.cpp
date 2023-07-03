@@ -87,6 +87,8 @@ int Prisma1AttitudeControl::task_spawn(int argc, char *argv[])
 
 void Prisma1AttitudeControl::Run()
 {
+
+
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
