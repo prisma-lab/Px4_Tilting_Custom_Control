@@ -26,6 +26,7 @@ public:
 
 	void setKr(const matrix::Vector3f K);
 	void setKq(const matrix::Vector3f K);
+	void setKiw(const matrix::Vector3f K);
 	void setMass(const float m);
 	void setIb(const float Ibx, const float Iby, const float Ibz);
 
@@ -54,6 +55,7 @@ private:
 
 	matrix::Vector3f _Kr; ///< Velocity control proportional gain
 	matrix::Vector3f _Kq; ///< Velocity control proportional gain
+	matrix::Vector3f _Ki_w; ///< Attitude control integral gain
 
 	// States
 
@@ -64,11 +66,10 @@ private:
 	matrix::Vector3f _f_w; ///< Desired force in the world frame = thrust
 
 	// Control variables	
-	matrix::Vector3f _integral;	
-	float _rpy_sp_buffer[3] = {0.0f, 0.0f, 0.0f};
+	matrix::Vector3f _integral{0.0f, 0.0f, 0.0f};	
 	matrix::Quaternionf _q_buf;
 	tilting_attitude_setpoint_s _att_sp{};
-	matrix::Dcmf _rotmat_buf;
+
 	bool _offboard{false};
 	float _q_signum{1.0f};
 

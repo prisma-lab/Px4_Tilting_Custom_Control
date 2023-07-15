@@ -29,7 +29,7 @@ PositionControlTilt::PositionControlTilt() {
 bool PositionControlTilt::update(const float dt){
 	PositionControlBase::update(dt);
 	
-	_counter = (_counter+1)%100;
+	_counter = (_counter+1)%50;
 
 	_positionController();
 
@@ -38,24 +38,11 @@ bool PositionControlTilt::update(const float dt){
 
 void PositionControlTilt::_positionController(){
 
-	for(int i = 0; i < 3; i++) {
-		if(!PX4_ISFINITE(_input.position_sp(i))) {
-			// Altitude is being controlled through velocity/acceleration
-			_pos_setpoint(i) += _input.velocity_sp(i) * _dt + 0.5f * _input.acceleration_sp(i) * powf(_dt, 2);
-		}
-		else {
-			_pos_setpoint(i) = _input.position_sp(i);
-		}
-	}
-
-	if(!_counter) {
-		// PX4_INFO("---------------");
-		// PX4_INFO("Position setpoint: %f, %f, %f",
-		// 			(double)_pos_setpoint(0), (double)_pos_setpoint(1), (double)_pos_setpoint(2));
-	}
+	_pos_setpoint = _input.position_sp;
 
 	Vector3f e =  _pos_setpoint - _state.position;
 	Vector3f e_dot =  _input.velocity_sp - _state.velocity;
+
 
 	PrismaControlMath::setZeroIfNanVector3f(e);
 	PrismaControlMath::setZeroIfNanVector3f(e_dot);
@@ -64,6 +51,20 @@ void PositionControlTilt::_positionController(){
 	PrismaControlMath::setZeroIfNan(_input.yaw_ddot_sp);
 
 	_integral += e * _dt;
+
+	if(!_counter) {
+		// PX4_INFO("---------------");
+		// PX4_INFO("Position setpoint: %f, %f, %f",
+		// 			(double)_pos_setpoint(0), (double)_pos_setpoint(1), (double)_pos_setpoint(2));
+		// PX4_INFO("Velocity setpoint: %f, %f, %f",
+		// 			(double)_input.velocity_sp(0), (double)_input.velocity_sp(1), (double)_input.velocity_sp(2));
+		// PX4_INFO("Position error: %f, %f, %f",
+		// 			(double)e(0), (double)e(1), (double)e(2));
+		// PX4_INFO("Velocity error: %f, %f, %f",
+		// 			(double)e_dot(0), (double)e_dot(1), (double)e_dot(2));
+		// PX4_INFO("Integral:       %f, %f, %f",
+		// 			(double)_integral(0), (double)_integral(1), (double)_integral(2));
+	}
 
 	vehicle_attitude_s att;
 	_attitude_sub.update(&att);
@@ -135,5 +136,6 @@ void PositionControlTilt::setState(const PositionControlState &state) {
 void PositionControlTilt::resetIntegral()
 {
 	_integral.setZero();
+	_integral(2) = _start_z_int;
 	// PX4_WARN("Resetting integral");
 }

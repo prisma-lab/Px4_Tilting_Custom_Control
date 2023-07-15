@@ -58,8 +58,6 @@ void AttitudeControlTilt::_attitudeController()
 	if (!_offboard) {
 		if (isnan(_input.yaw_sp))
 		{
-			_input.yaw_sp = _rpy_sp_buffer[_angleInputMode] + _input.yaw_dot_sp*_dt;
-			_rpy_sp_buffer[_angleInputMode] = _input.yaw_sp;
 			Eulerf eul_q(_q_buf);
 			if( (_angleInputMode == 0 && (abs(eul_q.phi()) < 0.3f   || eul_q.phi()*_input.yaw_dot_sp < 0.0f)) ||
 					(_angleInputMode == 1 && (abs(eul_q.theta()) < 0.3f || eul_q.theta()*_input.yaw_dot_sp < 0.0f)) ||
@@ -85,26 +83,10 @@ void AttitudeControlTilt::_attitudeController()
 
 			_q_buf = Quaternionf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
 		}
-		
-		// if (!isnanf(_input.yaw_sp)){
-		// 	_q_buf = Quaternionf(Eulerf(0.0f, 0.0f, _input.yaw_sp));
-		// 	_rpy_sp_buffer[2] = _input.yaw_sp;
-		// }
 	}
-
-	_rpy_sp_buffer[0] = math::constrain(_rpy_sp_buffer[0], -0.3f, 0.3f);
-	_rpy_sp_buffer[1] = math::constrain(_rpy_sp_buffer[1], -0.3f, 0.3f);
-
-	// for(int i = 0; i < 3; i++)
-	// 	_rpy_sp_buffer[i] = 0;
 
 	_thrust_sp = _R.transpose() * _f_w;
 
-	// Quaternionf q_des(Eulerf(_rpy_sp_buffer[0], _rpy_sp_buffer[1], _rpy_sp_buffer[2]));
-	Quaternionf q_des(Eulerf(0.3f, 0.0f, _rpy_sp_buffer[2]));
-
-	q_des = _q_buf;
-	// _q_buf = Quaternionf(0.0871557f, 0.0f, 0.0f, 0.9961947f);
 	Quaternionf q1 = (_q_buf).normalized();
 	Quaternionf q2 = (_state.attitude).inversed().normalized();
 	Quaternionf q_err = q2 * q1;
@@ -115,43 +97,19 @@ void AttitudeControlTilt::_attitudeController()
 
 	Vector3f w_err = _w_sp - _state.angular_velocity;
 
+	_integral += w_err * _dt;
+
 	_torque_sp = w_err.emult(_Kr) + _state.angular_velocity.cross(_Ib * _state.angular_velocity);
+	_torque_sp += _integral.emult(_Ki_w);
 
 	Eulerf att(_state.attitude);
 	Eulerf err_eul(q_err);
 	Eulerf eul_des(_q_buf);
 	if (!_counter)
 	{
-		// PX4_INFO("--------------------");
-
-		// PX4_INFO("Roll - setpoint - error:   %f, %f, %f",
-		// 	(double)att.phi(), (double)_rpy_sp_buffer[0], (double)Eulerf(q_err).phi());
-		// PX4_INFO("Pitch - setpoint - error:  %f, %f, %f",
-		// 	(double)att.theta(), (double)_rpy_sp_buffer[1], (double)Eulerf(q_err).theta());
-		// PX4_INFO("Yaw - setpoint - error:    %f, %f, %f",
-		// 	(double)att.psi(), (double)_rpy_sp_buffer[2], (double)Eulerf(q_err).psi());
-
-		// PX4_INFO("w_sp: %f, %f, %f",
-		// 	(double)_w_sp(0), (double)_w_sp(1), (double)_w_sp(2));
-		// PX4_INFO("w_err: %f, %f, %f",
-		// 	(double)w_err(0), (double)w_err(1), (double)w_err(2));
-		
-		// PX4_INFO("Roll - Pitch - Yaw SP:      %f, %f, %f",
-		// 	(double)eul_des.phi(), (double)eul_des.theta(), (double)eul_des.psi());
-
-		// PX4_INFO( "Roll - Pitch - Yaw:        %f, %f, %f",
-		// 	(double)att.phi(), (double)att.theta(), (double)att.psi());
-		// PX4_INFO( "Roll - Pitch - Yaw ER:     %f, %f, %f",
-		// 	(double)err_eul.phi(), (double)err_eul.theta(), (double)err_eul.psi());
-		// PX4_INFO("---");
-		// PX4_INFO("q:      %f, %f, %f, %f",
-		// 				 (double)_state.attitude(0), (double)_state.attitude(1), (double)_state.attitude(2), (double)_state.attitude(3));
-		// PX4_INFO("q_des:  %f, %f, %f, %f",
-		// 				 (double)_q_buf(0), (double)_q_buf(1), (double)_q_buf(2), (double)_q_buf(3));
-		// PX4_INFO("q_err:      %f, %f, %f, %f",
-		// 	(double)q_err(0), (double)q_err(1), (double)q_err(2), (double)q_err(3));
-		// PX4_INFO("q2:      %f, %f, %f, %f",
-		// 	(double)q2(0), (double)q2(1), (double)q2(2), (double)q2(3));
+		PX4_INFO("--------------------");
+		PX4_INFO("Integral:   %f, %f, %f",
+			(double)_integral(0), (double)_integral(1), (double)_integral(2));
 	}
 }
 
@@ -232,6 +190,13 @@ void AttitudeControlTilt::setKq(Vector3f K)
 	_Kq(2) = K(2);
 }
 
+void AttitudeControlTilt::setKiw(Vector3f K)
+{
+	_Ki_w(0) = K(0);
+	_Ki_w(1) = K(1);
+	_Ki_w(2) = K(2);
+}
+
 void AttitudeControlTilt::setMass(float m)
 {
 	_mass = m;
@@ -252,11 +217,5 @@ void AttitudeControlTilt::setAngleInputMode(unsigned int mode)
 
 void AttitudeControlTilt::resetBuffers()
 {
-	Eulerf att(_state.attitude);
-	_rpy_sp_buffer[0] = att.phi();
-	_rpy_sp_buffer[1] = att.theta();
-	_rpy_sp_buffer[2] = att.psi();
 	_q_buf = _state.attitude;
-	_rotmat_buf = Dcmf(_state.attitude);
-	// PX4_WARN("Resetting buffers");
 }

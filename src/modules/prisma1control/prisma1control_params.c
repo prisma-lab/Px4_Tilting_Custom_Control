@@ -64,3 +64,10 @@ PARAM_DEFINE_FLOAT(PRISMA_SIGMA, 1.0f);
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_MASS, 1.5f);
+/**
+ * Starting value for the Z position integral, which should help slowing down takeoff
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_Z_INT_S, 0.0f);

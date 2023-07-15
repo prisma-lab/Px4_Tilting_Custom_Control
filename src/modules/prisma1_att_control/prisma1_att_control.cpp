@@ -50,6 +50,7 @@ void Prisma1AttitudeControl::parameters_update(bool force)
 		#elif defined TILT_CONTROL
 		_control.setKr(Vector3f(_param_xy_kr.get(), _param_xy_kr.get(), _param_z_kr.get()));
 		_control.setKq(Vector3f(_param_xy_kq.get(), _param_xy_kq.get(), _param_z_kq.get()));
+		_control.setKiw(Vector3f(_param_xy_ki.get(), _param_xy_ki.get(), _param_z_ki.get()));
 		_control.setAngleInputMode(_param_angleInputMode.get());
 		#elif defined PASS_CONTROL
 		#endif
@@ -115,7 +116,6 @@ void Prisma1AttitudeControl::Run()
 		AttitudeControlState state{set_vehicle_state(_attitude, angular_velocity)};
 
 		if (_vehicle_control_mode.flag_control_prisma_enabled) {
-			
 
 			if(_trajectory_setpoint_sub.updated())
 				_trajectory_setpoint_sub.update(&_traj_sp);
@@ -139,9 +139,11 @@ void Prisma1AttitudeControl::Run()
 			_control.setOffboard(_vehicle_control_mode.flag_control_offboard_enabled);
 			#endif
 
-			if(!_is_active){
+			if(!_is_active || !_vehicle_control_mode.flag_armed){
 				_control.resetIntegral();
 				_is_active = true;
+				
+				// PX4_WARN("Resetting attitude integral");
 
 				#ifdef TILT_CONTROL
 				_control.resetBuffers();

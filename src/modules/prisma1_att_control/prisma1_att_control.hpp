@@ -25,8 +25,8 @@
 #include <uORB/topics/actuator_controls.h>
 
 
-#define TILT_CONTROL
-// #define GEOM_CONTROL
+// #define TILT_CONTROL
+#define GEOM_CONTROL
 // #define PASS_CONTROL
 
 #if defined GEOM_CONTROL

@@ -81,8 +81,8 @@
 #include <uORB/topics/debug_key_value.h>
 #include <cstring>
 
-#define TILT_CONTROL
-// #define GEOM_CONTROL
+// #define TILT_CONTROL
+#define GEOM_CONTROL
 // #define PASS_CONTROL
 
 #if defined GEOM_CONTROL
@@ -146,9 +146,6 @@ private:
 	uORB::Publication<POS_OUT_S> _pos_out_pub{POS_OUT_ORB_ID};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub {ORB_ID(takeoff_status)};
-	
-	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
-	uORB::Publication<debug_key_value_s> _debug_key_value_pub{ORB_ID(debug_key_value)};
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub {this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
@@ -215,11 +212,15 @@ private:
 	uint8_t _heading_reset_counter{0};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>)   _param_mpc_tko_ramp_t,   /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>)  _param_mpc_z_vel_p_acc,
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>)  _param_mpc_tiltmax_lnd,  /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)  _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>)   _param_mpc_land_speed,
+		(ParamFloat<px4::params::PRISMA_THR>) 			_param_thr,
 		(ParamFloat<px4::params::PRISMA_KP_XY>)     _param_xy_p,
 		(ParamFloat<px4::params::PRISMA_KP_Z>)      _param_z_p,
 		(ParamFloat<px4::params::PRISMA_KD_XY>)     _param_xy_v,
@@ -228,7 +229,8 @@ private:
 		(ParamFloat<px4::params::PRISMA_KI_Z>)      _param_z_i,
 		(ParamFloat<px4::params::PRISMA_MASS>)      _param_mass,
 		(ParamFloat<px4::params::PRISMA_C1>)        _param_c1,
-		(ParamFloat<px4::params::PRISMA_SIGMA>)     _param_sigma
+		(ParamFloat<px4::params::PRISMA_SIGMA>)     _param_sigma,
+		(ParamFloat<px4::params::PRISMA_Z_INT_S>)   _param_start_z_int
 	);
 	
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);

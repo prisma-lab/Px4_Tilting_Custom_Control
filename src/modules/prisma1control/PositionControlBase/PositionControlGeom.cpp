@@ -64,6 +64,8 @@ void PositionControlGeom::_positionController(){
 			_integral(i) += deltaI;
 		}
 	}
+
+	// PX4_INFO("Integral Z: %f", (double)_integral(2));
 	
 	A = -e.emult(_Kx) - e_dot.emult(_Kv) \
 				- constrain(_integral, -_sigma, _sigma).emult(_Ki) \
@@ -83,9 +85,9 @@ void PositionControlGeom::_positionController(){
 	Vector3f b3_dot = (Dcmf(att_q)*w.hat()).col(2);
 
 	_thrust_sp(0) = _thrust_sp(1) = 0.0f;
-	_thrust_sp(2) = _f_w.dot(b3);
-	_thrust_sp(2) = PX4_ISFINITE(_thrust_sp(2)) ? -_thrust_sp(2) / 28.2656f : 0.0f;
-	_thrust_sp(2) = math::constrain(_thrust_sp(2), -1.0f, 0.0f);
+	_thrust_sp(2) = -_f_w.dot(b3);
+	// _thrust_sp(2) = PX4_ISFINITE(_thrust_sp(2)) ? -_thrust_sp(2) / 28.2656f : 0.0f;
+	// _thrust_sp(2) = math::constrain(_thrust_sp(2), -1.0f, 0.0f);
 
 	float f = -A.dot(b3);
 	Vector3f ea = Vector3f(0.0f, 0.0f, G) - f / _mass * b3 - _input.acceleration_sp;
@@ -222,6 +224,7 @@ void PositionControlGeom::getLocalPositionSetpoint(vehicle_local_position_setpoi
 void PositionControlGeom::resetIntegral()
 {
 	_integral.setZero();
+	_integral(2) = _start_z_int;
 	// PX4_WARN("Resetting integral");
 }
 

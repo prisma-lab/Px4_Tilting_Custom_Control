@@ -69,15 +69,18 @@ public:
 	 */
 	virtual void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &setpoint) = 0;
 
-
 	/**
 	 * Resets any integral contained in the controller
 	*/
 	virtual void resetIntegral() = 0;
 
+	void setStartZInt(const float start_z_int) {_start_z_int = start_z_int;};
+
 protected:
 
 	float _dt;
+
+	float _start_z_int = 0.0f;
 
 	// States
 	PositionControlState _state;

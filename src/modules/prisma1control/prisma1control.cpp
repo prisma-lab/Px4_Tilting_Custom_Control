@@ -52,6 +52,8 @@ Prisma1Control::Prisma1Control() :
 	_vel_z_deriv(this, "VELD")
 {
 	parameters_update(true);
+	_tilt_limit_slew_rate.setSlewRate(.2f);
+	_takeoff_status_pub.advertise();
 
 	PX4_WARN("Prisma1Control started!!");
 
@@ -91,10 +93,15 @@ void Prisma1Control::parameters_update(bool force)
 		_control.setVelGains(Vector3f(_param_xy_v.get(), _param_xy_v.get(), _param_z_v.get()));
 		_control.setIntGains(Vector3f(_param_xy_i.get(), _param_xy_i.get(), _param_z_i.get()));
 		_control.setMass(_param_mass.get());
+		_control.setStartZInt(_param_start_z_int.get());
 		#ifdef GEOM_CONTROL
 		_control.setSigma(_param_sigma.get());
 		_control.setC1(_param_c1.get());
 		#endif
+
+		_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
+		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
+		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 	}
 }
 
@@ -147,48 +154,12 @@ PositionControlState Prisma1Control::set_vehicle_state(const vehicle_local_posit
 PositionControlInput Prisma1Control::set_control_input(const vehicle_local_position_setpoint_s &setpoint) {
 	PositionControlInput input;
 
-	static int debug_ind = 0;
-	debug_vect_s dbg;
-	debug_key_value_s dbg_kv;
-
 	input.position_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	input.velocity_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	input.acceleration_sp = Vector3f(setpoint.acceleration[0], setpoint.acceleration[1], setpoint.acceleration[2]);
 	input.yaw_sp = setpoint.yaw;
 	input.yaw_dot_sp = setpoint.yawspeed;
 	input.yaw_ddot_sp = 0.0f;
-
-	char name[10];
-	Vector3f vec;
-	switch(debug_ind){
-	case 0:
-		strncpy(name, "pos_sp", sizeof(name));
-		vec = input.position_sp;
-		break;
-	case 1:
-		strncpy(name, "vel_sp", sizeof(name));
-		vec = input.velocity_sp;
-		break;
-	case 2:
-		strncpy(name, "acc_sp", sizeof(name));
-		vec = input.acceleration_sp;
-		break;
-	default:
-		break;
-	}
-
-	// debug_ind = (debug_ind + 1) % 3;
-
-	strncpy(dbg.name, name, sizeof(dbg.name));
-	dbg.x = vec(0);
-	dbg.y = vec(1);
-	dbg.z = vec(2);
-
-	_debug_vect_pub.publish(dbg);
-
-	strncpy(dbg_kv.key, name, sizeof(dbg_kv.key));
-	dbg_kv.value = vec(0);
-	// _debug_key_value_pub.publish(dbg_kv);
 
 	return input;
 }
@@ -239,7 +210,6 @@ void Prisma1Control::Run()
 	parameters_update(false);
 
 	vehicle_local_position_s local_pos;
-	float tilt_limit_deg = 0;
 
 	if (_local_pos_sub.update(&local_pos)) {
 		const hrt_abstime time_stamp_now = local_pos.timestamp_sample;
@@ -249,40 +219,18 @@ void Prisma1Control::Run()
 		// set _dt in controllib Block for BlockDerivative
 		setDt(dt);
 		
-		const bool is_trajectory_setpoint_updated = (_trajectory_setpoint_sub.update(&_setpoint));
-		// if(!_counter) {
-		// 	PX4_INFO("----------------------------");
-		// 	PX4_INFO("Setpoint position:        %f, %f, %f",
-		// 		(double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
-		// 	PX4_INFO("Setpoint velocity:        %f, %f, %f",
-		// 		(double)_setpoint.vx, (double)_setpoint.vy, (double)_setpoint.vz);
-		// 	PX4_INFO("Setpoint acceleration:    %f, %f, %f",
-		// 		(double)_setpoint.acceleration[0], (double)_setpoint.acceleration[1], (double)_setpoint.acceleration[2]);
-		// 	PX4_INFO("Setpoint yaw and yaw_dot: %f, %f",
-		// 		(double)_setpoint.yaw, (double)_setpoint.yawspeed);
-		// }
-		_trajectory_setpoint_sub.update(&_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
-		if(!_counter) {
-			// hover_thrust_estimate_s hte;
-			// _hover_thrust_estimate_sub.update(&hte);
-			// PX4_INFO("---------------------");
-			// PX4_INFO("Ground contact: %s", _vehicle_land_detected.ground_contact ? "true" : "false");
-			// PX4_INFO("Land detected: %s", _vehicle_land_detected.landed ? "true" : "false");
-			// PX4_INFO("Takeoff state: %u", _takeoff_status_pub.get().takeoff_state);
-			// PX4_INFO("hte: %f", (double)hte.hover_thrust);
-			// PX4_INFO("Setpoint thrust(2): %f", (double)_setpoint.thrust[2]);
-		}
-		
 		PositionControlState state{set_vehicle_state(local_pos)};
 
 		if (_vehicle_control_mode.flag_control_prisma_enabled) {
-			
-			if(!_is_active){
+			const bool is_trajectory_setpoint_updated = (_trajectory_setpoint_sub.update(&_setpoint));
+
+			if(!_is_active || !_vehicle_control_mode.flag_armed){
 				_is_active = true;
 				_control.resetIntegral();
+				// PX4_WARN("Resetting position integral");
 			}		
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
@@ -313,6 +261,12 @@ void Prisma1Control::Run()
 			// update vehicle constraints and handle smooth takeoff
 			_vehicle_constraints_sub.update(&_vehicle_constraints);
 			
+			// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
+			// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
+			if (!PX4_ISFINITE(_vehicle_constraints.speed_up) || (_vehicle_constraints.speed_up > _param_mpc_z_vel_max_up.get())) {
+				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+			}
+
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				bool want_takeoff = _vehicle_control_mode.flag_armed && _vehicle_land_detected.landed
@@ -350,33 +304,68 @@ void Prisma1Control::Run()
 			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 
 			if (is_trajectory_setpoint_updated) {
+				// make sure takeoff ramp is not amended by acceleration feed-forward
+				if (!flying) {
+					_setpoint.acceleration[2] = NAN;
+					// hover_thrust maybe reset on takeoff
+					// _control.setHoverThrust(_param_mpc_thr_hover.get());
+				}
+
 				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
 				const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
 				if (not_taken_off || flying_but_ground_contact) {
+					reset_setpoint_to_nan(_setpoint);
+
 					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
-					_setpoint.vx = 0.0f;
-					_setpoint.vy = 0.0f;
-					_setpoint.vz = 0.0f;
 
 					// prevent any integrator windup
 					_control.resetIntegral();
 				}
 			}
 			
-			tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
+			const float tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
 			     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
+			_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt);
 
-			_takeoff.updateRamp(dt,
-				PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
+			// const float speed_up = _takeoff.updateRamp(dt,
+			// 		       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
+			// const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
+			// 			 _param_mpc_z_vel_max_dn.get();
+
+			// Allow ramping from zero thrust on takeoff
+			// const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
+
+			// _control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
+
+			// _control.setVelocityLimits(
+			// 	_param_mpc_xy_vel_max.get(),
+			// 	math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
+			// 	math::max(speed_down, 0.f));
 
 			
-
 			// Here I set the input to the controller
 			PositionControlInput input{set_control_input(_setpoint)};
 			
 			_control.setInputSetpoint(input);
 
+			if(!_counter) {
+				// PX4_INFO("----------------------------");
+				// PX4_INFO("Setpoint position:        %f, %f, %f",
+				// 	(double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
+				// PX4_INFO("Setpoint velocity:        %f, %f, %f",
+				// 	(double)_setpoint.vx, (double)_setpoint.vy, (double)_setpoint.vz);
+				// PX4_INFO("Setpoint acceleration:    %f, %f, %f",
+				// 	(double)_setpoint.acceleration[0], (double)_setpoint.acceleration[1], (double)_setpoint.acceleration[2]);
+				// PX4_INFO("Setpoint yaw and yaw_dot: %f, %f",
+				// 	(double)_setpoint.yaw, (double)_setpoint.yawspeed);
+			}
+
+			/*const float speed_up = */_takeoff.updateRamp(dt,
+				PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
+
+			// PX4_INFO("speed_up = %f", (double)speed_up);
+			
 			// update states
 			if (!PX4_ISFINITE(_setpoint.z)
 			    && PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
@@ -404,12 +393,33 @@ void Prisma1Control::Run()
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			_control.getLocalPositionSetpoint(local_pos_sp);
 			local_pos_sp.timestamp = hrt_absolute_time();
+			for(int i=0; i<3; i++) {
+				local_pos_sp.thrust[i] /= _param_thr.get();
+			}
 			_local_pos_sp_pub.publish(local_pos_sp);
+
+			// PX4_INFO("--------------------");
+			// PX4_INFO("Input z velocity: %f", (double)_setpoint.vz);
+			// PX4_INFO("Thrust:           %f", (double)local_pos_sp.thrust[2]);
 
 			// Publish the output of the position controller
 			POS_OUT_S pos_out;
 			_control.getControlOutput(&pos_out);
 			_pos_out_pub.publish(pos_out);
+
+
+			// Publish takeoff status
+			const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
+
+			if ((takeoff_state != _takeoff_status_pub.get().takeoff_state
+				|| !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit))
+				&& _vehicle_control_mode.flag_control_prisma_enabled) {
+				// PX4_WARN("Publishing takeoff status: %u", takeoff_state);
+				_takeoff_status_pub.get().takeoff_state = takeoff_state;
+				_takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
+				_takeoff_status_pub.get().timestamp = hrt_absolute_time();
+				_takeoff_status_pub.update();
+			}
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
@@ -418,17 +428,6 @@ void Prisma1Control::Run()
 						    time_stamp_now);
 		}
 
-		// Publish takeoff status
-		const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
-
-		if (takeoff_state != _takeoff_status_pub.get().takeoff_state &&
-			_vehicle_control_mode.flag_control_prisma_enabled) {
-			PX4_WARN("Publishing takeoff status: %u", takeoff_state);
-			_takeoff_status_pub.get().takeoff_state = takeoff_state;
-			_takeoff_status_pub.get().tilt_limit = tilt_limit_deg;
-			_takeoff_status_pub.get().timestamp = hrt_absolute_time();
-			_takeoff_status_pub.update();
-		}
 
 		// save latest reset counters
 		_vxy_reset_counter = local_pos.vxy_reset_counter;
