@@ -222,6 +222,12 @@ set(msg_files
 	VtolVehicleStatus.msg
 	Wind.msg
 	YawEstimatorStatus.msg
+
+	#*** CUSTOM
+	tilting_mc_desired_angles.msg
+	tilting_servo_sp.msg
+	#*** END-CUSTOM
+
 )
 list(SORT msg_files)
 
