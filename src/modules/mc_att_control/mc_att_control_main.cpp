@@ -181,7 +181,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 
 	tilting_servo_sp_s servo_sp;
 
-	if(_param_airframe.get() == 11 ){ //If tilting_multirotors
+	if(_param_airframe.get() == 12 ){ //If tilting_multirotors
 
 		//To do: change the time_constant of the filter from 0.0f to a param
 		_man_Fx_input_filter.setParameters(dt, 0.0f);
