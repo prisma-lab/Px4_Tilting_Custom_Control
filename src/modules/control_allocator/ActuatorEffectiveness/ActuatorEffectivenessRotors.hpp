@@ -79,8 +79,10 @@ public:
 		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
 	};
 
+	/*** CUSTOM ***/
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
-				    bool tilt_support = false);
+				    bool tilt_support = false, bool tilting_omnidir = false);
+	/*** CUSOTM ***/
 	virtual ~ActuatorEffectivenessRotors() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
@@ -95,8 +97,16 @@ public:
 		normalize[0] = true;
 	}
 
+	/*** CUSTOM ***/
+	/**
+	 * @param tilting_omnidir to check if is omnidirectional tilting
+	 * @param vet_lat to compute a vertical force or lateral force column
+	*/
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
+					      bool tilting_omnidir = false,
+					      bool horizontal_matrix = false);
+	/*** END-CUSTOM ***/
 
 	bool addActuators(Configuration &configuration);
 
@@ -132,6 +142,10 @@ private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+
+	/*** CUSTOM ***/
+	const bool _tilting_omnidir;
+	/*** END-CUSTOM ***/
 
 	struct ParamHandles {
 		param_t position_x;
