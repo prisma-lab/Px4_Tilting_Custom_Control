@@ -53,6 +53,10 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	parameters_update(true);
 	_tilt_limit_slew_rate.setSlewRate(.2f);
 	_takeoff_status_pub.advertise();
+
+	/*** CUSTOM ***/
+	_tilting_servo_setpoint_pub.advertise();
+	/*** END-CUSTOM ***/
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -557,6 +561,74 @@ void MulticopterPositionControl::Run()
 			// Publish attitude setpoint output
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			_control.getAttitudeSetpoint(attitude_setpoint);
+
+			/*** CUSTOM ***/
+			if(_param_airframe.get() == 11 ){ //If tilting_multirotors
+
+				/* Evaluate forces for fully actuated tilting multirotor*/
+				if(_param_tilting_type.get() == 1){
+					const float sin_yaw = sinf(attitude_setpoint.yaw_body);
+					const float cos_yaw = cosf(attitude_setpoint.yaw_body);
+
+					attitude_setpoint.thrust_body[0] = cos_yaw * local_pos_sp.thrust[0] + sin_yaw * local_pos_sp.thrust[1];
+					attitude_setpoint.thrust_body[0] = math::constrain(attitude_setpoint.thrust_body[0],
+								-1.0f*_param_f_max.get(), _param_f_max.get());
+
+					attitude_setpoint.thrust_body[1] = -sin_yaw * local_pos_sp.thrust[0] + cos_yaw * local_pos_sp.thrust[1];
+					attitude_setpoint.thrust_body[1] = math::constrain(attitude_setpoint.thrust_body[1],
+								-1.0f*_param_f_max.get(), _param_f_max.get());
+				}
+
+				/* Consider the desired body angle */
+				if(_tilting_mc_angles_sub.updated()){
+
+					tilting_mc_desired_angles_s tilting_mc_angles_sp;
+
+					if (_tilting_mc_angles_sub.copy(&tilting_mc_angles_sp) &&
+					    (tilting_mc_angles_sp.timestamp > _last_angles_setpoint) ){
+
+						// H-tilting multirotor
+						if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get()){
+
+							_tilting_mc_pitch_sp = math::constrain(tilting_mc_angles_sp.pitch_body,
+								_param_des_pitch_min.get(), _param_des_pitch_max.get());
+
+						}
+						else if(_param_tilting_type.get() == 1){
+
+							_tilting_mc_pitch_sp = math::constrain(tilting_mc_angles_sp.pitch_body,
+								_param_des_pitch_min.get(), _param_des_pitch_max.get());
+
+							_tilting_mc_roll_sp = math::constrain(tilting_mc_angles_sp.roll_body,
+								_param_des_roll_min.get(), _param_des_roll_max.get());
+
+						}
+
+						_last_angles_setpoint = tilting_mc_angles_sp.timestamp;
+					}
+
+				}
+
+				/* For the H-tilting multirotor the tilt_servo angle must always be updated */
+				if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get()){
+
+					_tilting_servo_sp.angle[0] = attitude_setpoint.pitch_body - _tilting_mc_pitch_sp;
+					_tilting_mc_roll_sp = attitude_setpoint.roll_body;
+
+					_tilting_servo_setpoint_pub.publish(_tilting_servo_sp);
+				}
+
+				attitude_setpoint.roll_body = _tilting_mc_roll_sp;
+				attitude_setpoint.pitch_body = _tilting_mc_pitch_sp;
+
+			}
+
+			Quatf q_des = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
+
+			q_des.copyTo(attitude_setpoint.q_d);
+
+			/*** END-CUSTOM ***/
+
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
