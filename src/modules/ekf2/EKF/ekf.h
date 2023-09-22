@@ -49,6 +49,7 @@
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 #include "position_bias_estimator.hpp"
+#include "python/ekf_derivation/generated/state.h"
 
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -59,14 +60,12 @@ enum class Likelihood { LOW, MEDIUM, HIGH };
 class Ekf final : public EstimatorInterface
 {
 public:
-	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
-
-	typedef matrix::Vector<float, _k_num_states> Vector24f;
-	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix24f;
+	typedef matrix::Vector<float, State::size> VectorState;
+	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
 	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 	template<int ... Idxs>
 
-	using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+	using SparseVectorState = matrix::SparseVectorf<State::size, Idxs...>;
 
 	Ekf()
 	{
@@ -80,6 +79,8 @@ public:
 
 	// should be called every time new data is pushed into the filter
 	bool update();
+
+	static uint8_t getNumberOfStates() { return State::size; }
 
 	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
@@ -303,28 +304,28 @@ public:
 	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
 
 	// get the state vector at the delayed time horizon
-	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
+	matrix::Vector<float, State::size> getStateAtFusionHorizonAsVector() const;
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 
 	// get the wind velocity var
-	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
+	Vector2f getWindVelocityVariance() const { return P.slice<State::wind_vel.dof, State::wind_vel.dof>(State::wind_vel.idx, State::wind_vel.idx).diag(); }
 
 	// get the full covariance matrix
-	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
+	const matrix::SquareMatrix<float, State::size> &covariances() const { return P; }
 
 	// get the diagonal elements of the covariance matrix
-	matrix::Vector<float, 24> covariances_diagonal() const { return P.diag(); }
+	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	// get the orientation (quaterion) covariances
-	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
+	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<State::quat_nominal.dof, State::quat_nominal.dof>(State::quat_nominal.idx, State::quat_nominal.idx); }
 
 	// get the linear velocity covariances
-	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
+	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<State::vel.dof, State::vel.dof>(State::vel.idx, State::vel.idx); }
 
 	// get the position covariances
-	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<3, 3>(7, 7); }
+	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<State::pos.dof, State::pos.dof>(State::pos.idx, State::pos.idx); }
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(const gpsMessage &gps) override;
@@ -355,9 +356,9 @@ public:
 	void resetGyroBias();
 	void resetAccelBias();
 
-	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
+	Vector3f getVelocityVariance() const { return velocity_covariances().diag(); };
 
-	Vector3f getPositionVariance() const { return P.slice<3, 3>(7, 7).diag(); }
+	Vector3f getPositionVariance() const { return position_covariances().diag(); }
 
 	// First argument returns GPS drift  metrics in the following array locations
 	// 0 : Horizontal position drift rate (m/s)
@@ -405,14 +406,14 @@ public:
 #endif
 	}
 
-	// gyro bias (states 10, 11, 12)
+	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
-	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)}; } // get the gyroscope bias variance in rad/s
+	Vector3f getGyroBiasVariance() const { return P.slice<State::gyro_bias.dof, State::gyro_bias.dof>(State::gyro_bias.idx, State::gyro_bias.idx).diag(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
-	// accel bias (states 13, 14, 15)
+	// accel bias
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
-	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)}; } // get the accelerometer bias variance in m/s**2
+	Vector3f getAccelBiasVariance() const { return P.slice<State::accel_bias.dof, State::accel_bias.dof>(State::accel_bias.idx, State::accel_bias.idx).diag(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -423,7 +424,7 @@ public:
 	Vector3f getMagBiasVariance() const
 	{
 		if (_control_status.flags.mag) {
-			return Vector3f{P(19, 19), P(20, 20), P(21, 21)};
+			return P.slice<State::mag_B.dof, State::mag_B.dof>(State::mag_B.idx, State::mag_B.idx).diag();
 		}
 
 		return _saved_mag_bf_covmat.diag();
@@ -623,7 +624,7 @@ private:
 	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
 	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 
-	SquareMatrix24f P{};	///< state covariance matrix
+	SquareMatrixState P{};	///< state covariance matrix
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
@@ -806,8 +807,8 @@ private:
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
-	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
-	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
+	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
@@ -870,7 +871,7 @@ private:
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
+	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
 
@@ -971,52 +972,48 @@ private:
 	float getMagDeclination();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	void clearInhibitedStateKalmanGains(Vector24f &K) const
+	void clearInhibitedStateKalmanGains(VectorState &K) const
 	{
-		// gyro bias: states 10, 11, 12
-		for (unsigned i = 0; i < 3; i++) {
+		for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
 			if (_gyro_bias_inhibit[i]) {
-				K(10 + i) = 0.f;
+				K(State::gyro_bias.idx + i) = 0.f;
 			}
 		}
 
-		// accel bias: states 13, 14, 15
-		for (unsigned i = 0; i < 3; i++) {
+		for (unsigned i = 0; i < State::accel_bias.dof; i++) {
 			if (_accel_bias_inhibit[i]) {
-				K(13 + i) = 0.f;
+				K(State::accel_bias.idx + i) = 0.f;
 			}
 		}
 
-		// mag I: states 16, 17, 18
 		if (!_control_status.flags.mag) {
-			K(16) = 0.f;
-			K(17) = 0.f;
-			K(18) = 0.f;
+			for (unsigned i = 0; i < State::mag_I.dof; i++) {
+				K(State::mag_I.idx + i) = 0.f;
+			}
 		}
 
-		// mag B: states 19, 20, 21
 		if (!_control_status.flags.mag) {
-			K(19) = 0.f;
-			K(20) = 0.f;
-			K(21) = 0.f;
+			for (unsigned i = 0; i < State::mag_B.dof; i++) {
+				K(State::mag_B.idx + i) = 0.f;
+			}
 		}
 
-		// wind: states 22, 23
 		if (!_control_status.flags.wind) {
-			K(22) = 0.f;
-			K(23) = 0.f;
+			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
+				K(State::wind_vel.idx + i) = 0.f;
+			}
 		}
 	}
 
-	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
 	{
 		clearInhibitedStateKalmanGains(K);
 
-		const Vector24f KS = K * innovation_variance;
-		SquareMatrix24f KHP;
+		const VectorState KS = K * innovation_variance;
+		SquareMatrixState KHP;
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned col = 0; col < _k_num_states; col++) {
+		for (unsigned row = 0; row < State::size; row++) {
+			for (unsigned col = 0; col < State::size; col++) {
 				// Instad of literally computing KHP, use an equvalent
 				// equation involving less mathematical operations
 				KHP(row, col) = KS(row) * K(col);
@@ -1040,18 +1037,20 @@ private:
 
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP);
+	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
 	void fixCovarianceErrors(bool force_symmetry);
+
+	void constrainStateVar(const IdxDof &state, float min, float max);
 
 	// constrain the ekf states
 	void constrainStates();
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(const Vector24f &K, float innovation);
+	void fuse(const VectorState &K, float innovation);
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
@@ -1197,7 +1196,7 @@ private:
 	void resetFakePosFusion();
 	void stopFakePosFusion();
 
-	void setVelPosStatus(const int index, const bool healthy);
+	void setVelPosStatus(const int state_index, const bool healthy);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

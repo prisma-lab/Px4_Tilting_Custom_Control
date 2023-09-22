@@ -134,11 +134,6 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Returns true if we need to do a takeoff at the current state
-	 */
-	bool do_need_vertical_takeoff();
-
-	/**
 	 * Returns true if we need to move to waypoint location before starting descent
 	 */
 	bool do_need_move_to_land();
@@ -157,11 +152,6 @@ private:
 	 * Create mission item to align towards next waypoint
 	 */
 	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
-
-	/**
-	 * Calculate takeoff height for mission item considering ground clearance
-	 */
-	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
@@ -248,7 +238,7 @@ private:
 	* @param prev_pos_index The index of the previous position item containing a position
 	* @return true if a previous position item was found
 	*/
-	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index) const;
+	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, uint16_t &prev_pos_index) const;
 
 	/**
 	 * @brief Get the next item after start_index that contains a position
@@ -310,6 +300,13 @@ private:
 	 */
 	bool cameraWasTriggering();
 
+	/**
+	 * @brief Check if a climb is necessary to align with mission altitude prior to starting the mission
+	 *
+	 * @param mission_item_index The index of the mission item to check if a climb is necessary
+	 */
+	void checkClimbRequired(uint16_t mission_item_index);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
@@ -339,7 +336,7 @@ private:
 
 	float _landing_loiter_radius{0.f};
 
-	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	float _mission_init_climb_altitude_amsl{NAN};	/**< altitude AMSL the vehicle will climb to when mission starts */
 
 	enum {
 		MISSION_TYPE_NONE,
@@ -356,9 +353,9 @@ private:
 	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
-		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
+		WORK_ITEM_TYPE_CLIMB,		/**< climb at current position before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
-		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
+		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align heading for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND

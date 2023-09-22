@@ -723,7 +723,11 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 	_skipping_takeoff_detection = false;
 
 	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
-	     _control_mode.flag_control_offboard_enabled) && _position_setpoint_current_valid) {
+	     _control_mode.flag_control_offboard_enabled) && (_position_setpoint_current_valid
+			     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+
+		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
+		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
@@ -2144,6 +2148,13 @@ FixedwingPositionControl::Run()
 			_current_longitude = gpos.lon;
 		}
 
+		if (_local_pos.z_global && PX4_ISFINITE(_local_pos.ref_alt)) {
+			_reference_altitude = _local_pos.ref_alt;
+
+		} else {
+			_reference_altitude = 0.f;
+		}
+
 		_current_altitude = -_local_pos.z + _local_pos.ref_alt; // Altitude AMSL in meters
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
@@ -2171,9 +2182,16 @@ FixedwingPositionControl::Run()
 		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)
 		    || (_local_pos.vxy_reset_counter != _pos_reset_counter)) {
 
-			_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+			double reference_latitude = 0.;
+			double reference_longitude = 0.;
+
+			if (_local_pos.xy_global && PX4_ISFINITE(_local_pos.ref_lat) && PX4_ISFINITE(_local_pos.ref_lon)) {
+				reference_latitude = _local_pos.ref_lat;
+				reference_longitude = _local_pos.ref_lon;
+			}
+
+			_global_local_proj_ref.initReference(reference_latitude, reference_longitude,
 							     _local_pos.ref_timestamp);
-			_global_local_alt0 = _local_pos.ref_alt;
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
@@ -2202,7 +2220,7 @@ FixedwingPositionControl::Run()
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.position[2];
+						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
 					}
 
 				}
@@ -2782,7 +2800,7 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 
 	local_position_setpoint.x = current_setpoint(0);
 	local_position_setpoint.y = current_setpoint(1);
-	local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
+	local_position_setpoint.z = _reference_altitude - current_waypoint.alt;
 	local_position_setpoint.yaw = NAN;
 	local_position_setpoint.yawspeed = NAN;
 	local_position_setpoint.vx = NAN;
