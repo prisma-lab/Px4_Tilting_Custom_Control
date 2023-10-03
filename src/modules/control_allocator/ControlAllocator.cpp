@@ -493,7 +493,7 @@ ControlAllocator::Run()
 
 				// TO DO: add a parameter for the threshold or solve that problem
 
-				if( vertical_actuator_sp(i) < 0.2f){
+				if( vertical_actuator_sp(i) < 0.5f){
 					servo_sp(i) = 0.0f;
 					// PX4_INFO("tilt_true %d : %f ", i, (double)servo_sp(i));
 				}

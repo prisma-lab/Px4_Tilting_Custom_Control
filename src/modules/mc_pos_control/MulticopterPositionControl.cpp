@@ -563,7 +563,7 @@ void MulticopterPositionControl::Run()
 			_control.getAttitudeSetpoint(attitude_setpoint);
 
 			/*** CUSTOM ***/
-			if(_param_airframe.get() == 12 ){ //If tilting_multirotors
+			if(_param_airframe.get() == 13 ){ //If tilting_multirotors
 
 				/* Evaluate forces for fully actuated tilting multirotor*/
 				if(_param_tilting_type.get() == 1){
