@@ -106,6 +106,7 @@ if(gazebo_FOUND)
 		uuv_hippocampus
 		# CUSTOM
 		NDT_tilting
+		tilting_quadrotor
 	)
 
 	set(worlds

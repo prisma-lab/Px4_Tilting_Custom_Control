@@ -468,7 +468,6 @@ ControlAllocator::Run()
 		}
 		else{
 
-
 			//Vertical forces
 			_control_allocation[0]->setControlSetpoint(c[0]);
 			_control_allocation[0]->allocate();
@@ -477,7 +476,7 @@ ControlAllocator::Run()
 			//Lateral forces
 			_control_allocation[1]->setControlSetpoint(c[0]);
 			_control_allocation[1]->allocate();
-			lateral_actuator_sp = _control_allocation[1]->getActuatorSetpoint();//_control_allocation[1]->getActuatorSetpoint();
+			lateral_actuator_sp = _control_allocation[1]->getActuatorSetpoint();
 			// PX4_INFO("v_sp %d : %f ", 0, (double)lateral_actuator_sp(0));
 
 			//Rotors
@@ -488,11 +487,14 @@ ControlAllocator::Run()
 				//PX4_INFO("motor: %f ", (double)actuator_sp(i));
 			}
 
+			// PX4_INFO("vert: %f  %f  %f  %f",(double)vertical_actuator_sp(0),(double)vertical_actuator_sp(1),(double)vertical_actuator_sp(2),(double)vertical_actuator_sp(3) );
 			//Tilts
 			for(int i=0; i<_num_actuators[1]; i++){
 
-				if( vertical_actuator_sp(i) < 0.1f){
-					servo_sp(i) = 0.00f;
+				// TO DO: add a parameter for the threshold or solve that problem
+
+				if( vertical_actuator_sp(i) < 0.2f){
+					servo_sp(i) = 0.0f;
 					// PX4_INFO("tilt_true %d : %f ", i, (double)servo_sp(i));
 				}
 				else{
