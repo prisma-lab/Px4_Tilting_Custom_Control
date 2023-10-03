@@ -298,7 +298,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	if (_control_status.flags.wind) {
 		const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
-;
+
 		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 			unsigned i = State::wind_vel.idx + index;
 			nextP(i, i) += wind_vel_process_noise;
@@ -527,24 +527,24 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrixState &KHP)
 
 void Ekf::resetQuatCov(const float yaw_noise)
 {
-	const float tilt_var = sq(fmaxf(_params.initial_tilt_err, 1.0e-2f));
-	Vector3f rot_var_ned(tilt_var, tilt_var, 0.f);
+	const float tilt_var = sq(math::max(_params.initial_tilt_err, 0.01f));
+	float yaw_var = sq(0.01f);
 
 	// update the yaw angle variance using the variance of the measurement
 	if (PX4_ISFINITE(yaw_noise)) {
 		// using magnetic heading tuning parameter
-		rot_var_ned(2) = (sq(fmaxf(yaw_noise, 1.0e-2f)));
+		yaw_var = math::max(sq(yaw_noise), yaw_var);
 	}
 
-	// clear existing quaternion covariance
-	// Optimization: avoid the creation of a <4> function
-	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx, 0.0f);
-	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx + 2, 0.0f);
+	resetQuatCov(Vector3f(tilt_var, tilt_var, yaw_var));
+}
 
+void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
+{
 	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov;
 	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), rot_var_ned, &q_cov);
 	q_cov.copyLowerToUpperTriangle();
-	P.slice<State::quat_nominal.dof, State::quat_nominal.dof>(State::quat_nominal.idx, State::quat_nominal.idx) = q_cov;
+	resetStateCovariance<State::quat_nominal>(q_cov);
 }
 
 void Ekf::resetMagCov()
@@ -560,8 +560,8 @@ void Ekf::resetMagCov()
 
 	saveMagCovData();
 #else
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.f);
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.f);
+	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.f);
+	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.f);
 
 #endif
 }

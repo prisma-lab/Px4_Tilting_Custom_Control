@@ -53,6 +53,7 @@
 #include <ActuatorEffectivenessCustom.hpp>
 #include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
+#include <ActuatorEffectivenessHelicopterCoaxial.hpp>
 /*** CUSTOM ***/
 #include <ActuatorEffectivenessTiltingMultirotor.hpp>
 /*** END-CUSTOM ***/
@@ -161,9 +162,10 @@ private:
 		CUSTOM = 9,
 		HELICOPTER_TAIL_ESC = 10,
 		HELICOPTER_TAIL_SERVO = 11,
+		HELICOPTER_COAXIAL = 12,
 
 		/*** CUSTOM ***/
-		TILTING_MULTIROTOR = 12,
+		TILTING_MULTIROTOR = 13,
 		/*** END-CUSTOM ***/
 	};
 

@@ -89,7 +89,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
@@ -167,8 +166,8 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			    || wmm_updated
 			    || !_mag_decl_cov_reset
 			    || !_state.mag_I.longerThan(0.f)
-			    || (P.slice<3, 3>(16, 16).diag().min() < sq(0.0001f)) // mag_I
-			    || (P.slice<3, 3>(19, 19).diag().min() < sq(0.0001f)) // mag_B
+			    || (getStateVariance<State::mag_I>().min() < sq(0.0001f))
+			    || (getStateVariance<State::mag_B>().min() < sq(0.0001f))
 			   ) {
 				ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
@@ -190,8 +189,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			_nb_mag_3d_reset_available = 2;
 		}
 	}
-
-	aid_src.fusion_enabled = _control_status.flags.mag;
 }
 
 void Ekf::stopMagFusion()
@@ -220,19 +217,17 @@ void Ekf::stopMagFusion()
 void Ekf::saveMagCovData()
 {
 	// save the NED axis covariance sub-matrix
-	_saved_mag_ef_covmat = P.slice<State::mag_I.dof, State::mag_I.dof>(State::mag_I.idx, State::mag_I.idx);
+	_saved_mag_ef_covmat = getStateCovariance<State::mag_I>();
 
 	// save the XYZ body covariance sub-matrix
-	_saved_mag_bf_covmat = P.slice<State::mag_B.dof, State::mag_B.dof>(State::mag_B.idx, State::mag_B.idx);
+	_saved_mag_bf_covmat = getStateCovariance<State::mag_B>();
 }
 
 void Ekf::loadMagCovData()
 {
 	// re-instate the NED axis covariance sub-matrix
-	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.f);
-	P.slice<State::mag_I.dof, State::mag_I.dof>(State::mag_I.idx, State::mag_I.idx) = _saved_mag_ef_covmat;
+	resetStateCovariance<State::mag_I>(_saved_mag_ef_covmat);
 
 	// re-instate the XYZ body axis covariance sub-matrix
-	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.f);
-	P.slice<State::mag_B.dof, State::mag_B.dof>(State::mag_B.idx, State::mag_B.idx) = _saved_mag_bf_covmat;
+	resetStateCovariance<State::mag_B>(_saved_mag_bf_covmat);
 }

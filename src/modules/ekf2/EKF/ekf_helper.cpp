@@ -211,6 +211,10 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_TERRAIN)
+	terrainHandleVerticalPositionReset(delta_z);
+#endif
+
 	// Reset the timout timer
 	_time_last_hgt_fuse = _time_delayed_us;
 }
@@ -621,7 +625,7 @@ void Ekf::resetGyroBias()
 	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
 
 	// Set previous frame values
-	_prev_gyro_bias_var = P.slice<State::gyro_bias.dof, State::gyro_bias.dof>(State::gyro_bias.idx, State::gyro_bias.idx).diag();
+	_prev_gyro_bias_var = getStateVariance<State::gyro_bias>();
 }
 
 void Ekf::resetAccelBias()
@@ -634,7 +638,7 @@ void Ekf::resetAccelBias()
 	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
 
 	// Set previous frame values
-	_prev_accel_bias_var = P.slice<State::accel_bias.dof, State::accel_bias.dof>(State::accel_bias.idx, State::accel_bias.idx).diag();
+	_prev_accel_bias_var = getStateVariance<State::accel_bias>();
 }
 
 // get EKF innovation consistency check status information comprising of:
@@ -941,18 +945,19 @@ void Ekf::updateGroundEffect()
 }
 #endif // CONFIG_EKF2_BAROMETER
 
-void Ekf::increaseQuatYawErrVariance(float yaw_variance)
-{
-	matrix::SquareMatrix<float, 4> q_cov;
-	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), Vector3f(0.f, 0.f, yaw_variance), &q_cov);
-	q_cov.copyLowerToUpperTriangle();
-	P.slice<4, 4>(0, 0) += q_cov;
-}
-
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
+
+	// save a copy of covariance in NED frame to restore it after the quat reset
+	const matrix::SquareMatrix3f rot_cov = diag(calcRotVecVariances());
+	Vector3f rot_var_ned_before_reset = matrix::SquareMatrix3f(_R_to_earth * rot_cov * _R_to_earth.T()).diag();
+
+	// update the yaw angle variance
+	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
+		rot_var_ned_before_reset(2) = yaw_variance;
+	}
 
 	// update transformation matrix from body to world frame using the current estimate
 	// update the rotation matrix using the new yaw value
@@ -966,10 +971,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_state.quat_nominal = quat_after_reset;
 	uncorrelateQuatFromOtherStates();
 
-	// update the yaw angle variance
-	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
-		increaseQuatYawErrVariance(yaw_variance);
-	}
+	// restore covariance
+	resetQuatCov(rot_var_ned_before_reset);
 
 	// add the reset amount to the output observer buffered data
 	_output_predictor.resetQuaternion(q_error);
