@@ -158,45 +158,46 @@ ActuatorEffectivenessTiltingMultirotor::getEffectivenessMatrix(Configuration &co
 	return (rotors_added_successfully && tilts_added_successfully);
 }
 
-// void
-// ActuatorEffectivenessTiltingMultirotor::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-// 			    ActuatorVector &actuator_sp){
+void
+ActuatorEffectivenessTiltingMultirotor::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max){
 
-// 	actuator_controls_s actuator_controls_0;
-// 	if(_tilting_type == 0){
-// 		if (_actuator_controls_0_sub.copy(&actuator_controls_0)){
+	// actuator_controls_s actuator_controls_0;
+	// if(_tilting_type == 0){
+	// 	if (_actuator_controls_0_sub.copy(&actuator_controls_0)){
 
-// 			float tilt_sp = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
+	// 		float tilt_sp = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
 
-// 			//TO DO: change min e max with the servo limits
-// 			tilt_sp = tilt_sp < -0.99f ? -1.f : tilt_sp;
-// 			tilt_sp = tilt_sp > 0.99f ? 1.f : tilt_sp;
+	// 		//TO DO: change min e max with the servo limits
+	// 		tilt_sp = tilt_sp < -0.99f ? -1.f : tilt_sp;
+	// 		tilt_sp = tilt_sp > 0.99f ? 1.f : tilt_sp;
 
-// 			// initialize _last_tilt_control
-// 			if (!PX4_ISFINITE(_last_tilt_control)) {
-// 				_last_tilt_control = tilt_sp;
+	// 		// initialize _last_tilt_control
+	// 		if (!PX4_ISFINITE(_last_tilt_control)) {
+	// 			_last_tilt_control = tilt_sp;
 
-// 			// To DO: check if 0.02f is a good threshold
-// 			} else if (fabsf(tilt_sp - _last_tilt_control) > 0.02f) {
-// 				_tilt_updated = true;
-// 				_last_tilt_control = tilt_sp;
-// 			}
+	// 		// To DO: check if 0.02f is a good threshold
+	// 		} else if (fabsf(tilt_sp - _last_tilt_control) > 0.02f) {
+	// 			_tilt_updated = true;
+	// 			_last_tilt_control = tilt_sp;
+	// 		}
 
-// 			for (int i = 0; i < _tilts->count(); ++i) {
-// 				if (_tilts->config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
-// 					actuator_sp(i + _first_tilt_idx) += tilt_sp;
-// 				}
-// 			}
-// 		}
-// 	}
-// 	else if(_tilting_type!=0 && matrix_index == 1){
+	// 		for (int i = 0; i < _tilts->count(); ++i) {
+	// 			if (_tilts->config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
+	// 				actuator_sp(i + _first_tilt_idx) += tilt_sp;
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// else if(_tilting_type!=0 && matrix_index == 1){
 
-// 		for(int i=0; i<_servo_count; i++){
+	// 	for(int i=0; i<_servo_count; i++){
 
-// 			actuator_sp(i) = actuator_sp(i) <  math::radians(_servo_param[i].angle_min) ?  math::radians(_servo_param[i].angle_min) : actuator_sp(i);
-// 			actuator_sp(i) = actuator_sp(i) >  math::radians(_servo_param[i].angle_max) ?  math::radians(_servo_param[i].angle_max) : actuator_sp(i);
+	// 		actuator_sp(i) = actuator_sp(i) <  math::radians(_servo_param[i].angle_min) ?  math::radians(_servo_param[i].angle_min) : actuator_sp(i);
+	// 		actuator_sp(i) = actuator_sp(i) >  math::radians(_servo_param[i].angle_max) ?  math::radians(_servo_param[i].angle_max) : actuator_sp(i);
 
-// 			// PX4_INFO("%d) tilt_sp: %f", i, (double)tilt_sp[i]);
-// 		}
-// 	}
-// }
+	// 		// PX4_INFO("%d) tilt_sp: %f", i, (double)tilt_sp[i]);
+	// 	}
+	// }
+}

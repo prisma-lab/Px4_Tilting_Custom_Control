@@ -615,6 +615,7 @@ void MulticopterPositionControl::Run()
 					_tilting_servo_sp.angle[0] = attitude_setpoint.pitch_body - _tilting_mc_pitch_sp;
 					_tilting_mc_roll_sp = attitude_setpoint.roll_body;
 
+					_tilting_servo_sp.timestamp = hrt_absolute_time();
 					_tilting_servo_setpoint_pub.publish(_tilting_servo_sp);
 				}
 

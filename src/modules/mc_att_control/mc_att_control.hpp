@@ -148,6 +148,7 @@ private:
 
 	/*** CUSTOM ***/
 	uORB::Publication<tilting_servo_sp_s>	_tilting_servo_pub{ORB_ID(tilting_servo_setpoint)};
+	uORB::Subscription _tilting_servo_sub{ORB_ID(tilting_servo_setpoint)};
 	AlphaFilter<float> _man_Fx_input_filter;
 	AlphaFilter<float> _man_Fy_input_filter;
 	float _man_F_max;
@@ -175,8 +176,8 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,       /**< throttle at stationary hover */
 
 		(ParamInt<px4::params::MPC_THR_CURVE>)      _param_mpc_thr_curve,        /**< throttle curve behavior */
-    
-    (ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
+
+    		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 
 		/*** CUSTOM ***/
 

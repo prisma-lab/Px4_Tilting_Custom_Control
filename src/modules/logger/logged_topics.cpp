@@ -45,6 +45,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("debug_array");
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
@@ -309,6 +310,7 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("actuator_motors");
 	add_topic("vehicle_thrust_setpoint");
 	add_topic("vehicle_torque_setpoint");
+
 }
 
 void LoggedTopics::add_debug_topics()

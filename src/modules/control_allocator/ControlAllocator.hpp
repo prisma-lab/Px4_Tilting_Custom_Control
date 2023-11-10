@@ -56,6 +56,8 @@
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
 /*** CUSTOM ***/
 #include <ActuatorEffectivenessTiltingMultirotor.hpp>
+#include <uORB/topics/tilting_servo_sp.h>
+#include <uORB/topics/debug_array.h>
 /*** END-CUSTOM ***/
 
 
@@ -194,6 +196,13 @@ private:
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
 
+	/*** CUSTOM ***/
+	uORB::Subscription _tilting_servo_setpoint_sub {ORB_ID(tilting_servo_setpoint)};
+
+	uORB::Publication<debug_array_s> _debug_array_pub  {ORB_ID(debug_array)};
+	debug_array_s _tilt_debug;
+	/*** END-CUSTOM ***/
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -223,7 +232,11 @@ private:
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		// CUSTOM
+		(ParamInt<px4::params::CA_TILTING_TYPE>) _param_tilting_type,	/**< 0: H-tilt, 1: omnidirectional */
+		(ParamInt<px4::params::CA_SV_TL_COUNT>) _param_servo_count,
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_rotor_count
 	)
 
 };

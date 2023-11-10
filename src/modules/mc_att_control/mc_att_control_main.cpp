@@ -193,9 +193,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 
 	if(_param_airframe.get() == 13 ){ //If tilting_multirotors
 
-		//To do: change the time_constant of the filter from 0.0f to a param
-		_man_Fx_input_filter.setParameters(dt, 0.0f);
-		_man_Fy_input_filter.setParameters(dt, 0.0f);
+		_man_Fx_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+		_man_Fy_input_filter.setParameters(dt,_param_mc_man_tilt_tau.get());
 		_man_Fx_input_filter.update(_manual_control_setpoint.pitch * _man_F_max);
 		_man_Fy_input_filter.update(_manual_control_setpoint.roll * _man_F_max);
 		const float fx_sp = _man_Fx_input_filter.getState();
@@ -274,6 +273,11 @@ MulticopterAttitudeControl::Run()
 
 	// run controller on attitude updates
 	vehicle_attitude_s v_att;
+
+	/*** CUSTOM ***/
+	tilting_servo_sp_s old_servo_sp;
+	tilting_servo_sp_s new_servo_sp;
+	/*** END-CUSTOM ***/
 
 	if (_vehicle_attitude_sub.update(&v_att)) {
 
@@ -368,6 +372,13 @@ MulticopterAttitudeControl::Run()
 			} else {
 				_man_roll_input_filter.reset(0.f);
 				_man_pitch_input_filter.reset(0.f);
+
+				if (_tilting_servo_sub.update(&new_servo_sp)){
+					old_servo_sp = new_servo_sp;
+				}
+
+				old_servo_sp.timestamp = hrt_absolute_time();
+				_tilting_servo_pub.publish(old_servo_sp);
 			}
 
 			Vector3f rates_sp = _attitude_control.update(q);

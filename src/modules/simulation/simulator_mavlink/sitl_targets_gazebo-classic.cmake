@@ -107,6 +107,7 @@ if(gazebo_FOUND)
 		# CUSTOM
 		NDT_tilting
 		tilting_quadrotor
+		baby_k
 	)
 
 	set(worlds

@@ -28,7 +28,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-# param set-default SYS_CTRL_ALLOC 1 #dynamic allocation
 param set-default CA_AIRFRAME 13 #Tilting Multirotor
 param set-default CA_TILTING_TYPE 1 #Omnidirectional tilting drone
 
@@ -41,7 +40,7 @@ param set-default CA_ROTOR_COUNT 8
 param set-default CA_SV_TL_COUNT 4
 
 #X-forward, Y-right
-#CW:-1, CCW:-1
+#CW:-1, CCW:1
 param set-default CA_ROTOR0_PX 0.35 #M1 CCW
 param set-default CA_ROTOR0_PY 0.35
 param set-default CA_ROTOR0_PZ 0.00
