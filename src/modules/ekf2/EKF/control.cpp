@@ -68,7 +68,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
-		const Vector3f angle_err_var_vec = calcRotVecVariances();
+		const Vector3f angle_err_var_vec = getQuaternionVariance();
 
 		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
 		// and declare the tilt alignment complete
@@ -92,7 +92,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			}
 
 			ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			ECL_DEBUG("tilt aligned, roll: %.3f, pitch %.3f, yaw: %.3f",
 				  (double)matrix::Eulerf(_state.quat_nominal).phi(),
@@ -111,7 +111,9 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlOpticalFlowFusion(imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_GNSS)
 	controlGpsFusion(imu_delayed);
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);
@@ -122,11 +124,14 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	controlDragFusion();
+	controlDragFusion(imu_delayed);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	controlHeightFusion(imu_delayed);
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	controlGravityFusion(imu_delayed);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// Additional data odometry data from an external estimator can be fused.
@@ -140,8 +145,11 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	controlZeroInnovationHeadingUpdate();
 
-	controlZeroVelocityUpdate();
-	controlZeroGyroUpdate(imu_delayed);
+	_zero_velocity_update.update(*this, imu_delayed);
+
+	if (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
+		_zero_gyro_update.update(*this, imu_delayed);
+	}
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();

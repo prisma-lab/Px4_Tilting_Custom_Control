@@ -45,8 +45,8 @@
 
 #include <mathlib/mathlib.h>
 #include <float.h>
-#include "python/ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h"
-#include "python/ekf_derivation/generated/compute_flow_y_innov_var_and_h.h"
+#include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
+#include <ekf_derivation/generated/compute_flow_y_innov_var_and_h.h>
 
 void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 {
@@ -77,11 +77,9 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
 
-	const VectorState state_vector = getStateAtFusionHorizonAsVector();
-
 	Vector2f innov_var;
 	VectorState H;
-	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
+	sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
 	innov_var.copyTo(aid_src.innovation_variance);
 
 	// run the innovation consistency check and record result
@@ -96,7 +94,7 @@ void Ekf::fuseOptFlow()
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const VectorState state_vector = getStateAtFusionHorizonAsVector();
+	const auto state_vector = _state.vector();
 
 	Vector2f innov_var;
 	VectorState H;
@@ -185,7 +183,7 @@ Vector2f Ekf::predictFlowVelBody()
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: _flow_sample_delayed.gyro_xyz is the negative of the body angular velocity, thus use minus sign
-	const Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt) % pos_offset_body;
+	const Vector3f vel_rel_imu_body = Vector3f(-(_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt - _flow_gyro_bias)) % pos_offset_body;
 
 	// calculate the velocity of the sensor in the earth frame
 	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
@@ -200,40 +198,29 @@ Vector2f Ekf::predictFlowVelBody()
 bool Ekf::calcOptFlowBodyRateComp()
 {
 	bool is_body_rate_comp_available = false;
-	const bool use_flow_sensor_gyro = _flow_sample_delayed.gyro_xyz.isAllFinite();
 
-	if (use_flow_sensor_gyro) {
+	if ((_delta_time_of > FLT_EPSILON)
+	    && (_flow_sample_delayed.dt > FLT_EPSILON)) {
+		const Vector3f reference_body_rate = -_imu_del_ang_of / _delta_time_of; // flow gyro has opposite sign convention
+		_ref_body_rate = reference_body_rate;
 
-		// if accumulation time differences are not excessive and accumulation time is adequate
-		// compare the optical flow and and navigation rate data and calculate a bias error
-		if ((_delta_time_of > FLT_EPSILON)
-		    && (_flow_sample_delayed.dt > FLT_EPSILON)
-		    && (fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f)) {
+		if (!PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1))) {
+			_flow_sample_delayed.gyro_xyz = reference_body_rate * _flow_sample_delayed.dt;
 
-			const Vector3f reference_body_rate(_imu_del_ang_of * (1.0f / _delta_time_of));
+		} else if (!PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2))) {
+			// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
+			_flow_sample_delayed.gyro_xyz(2) = reference_body_rate(2) * _flow_sample_delayed.dt;
+		}
 
-			const Vector3f measured_body_rate(_flow_sample_delayed.gyro_xyz * (1.0f / _flow_sample_delayed.dt));
+		const Vector3f measured_body_rate = _flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt;
+		_measured_body_rate = measured_body_rate;
 
+		if (fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f) {
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
-
-			// apply gyro bias
-			_flow_sample_delayed.gyro_xyz -= (_flow_gyro_bias * _flow_sample_delayed.dt);
-
-			is_body_rate_comp_available = true;
 		}
 
-	} else {
-		// Use the EKF gyro data if optical flow sensor gyro data is not available
-		// for clarification of the sign see definition of flowSample and imuSample in common.h
-		if ((_delta_time_of > FLT_EPSILON)
-		    && (_flow_sample_delayed.dt > FLT_EPSILON)) {
-
-			_flow_sample_delayed.gyro_xyz = -_imu_del_ang_of / _delta_time_of * _flow_sample_delayed.dt;
-			_flow_gyro_bias.zero();
-
-			is_body_rate_comp_available = true;
-		}
+		is_body_rate_comp_available = true;
 	}
 
 	// reset the accumulators

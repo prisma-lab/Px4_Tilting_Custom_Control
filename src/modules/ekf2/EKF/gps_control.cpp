@@ -71,8 +71,12 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
-	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
-	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, getGyroBias());
+	if (!gyro_bias_inhibited()) {
+		_yawEstimator.setGyroBias(getGyroBias());
+	}
+
+	// run EKF-GSF yaw estimator once per imu_delayed update
+	_yawEstimator.update(imu_delayed, _control_status.flags.in_air && !_control_status.flags.vehicle_at_rest);
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
@@ -248,6 +252,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					// reset position
 					_information_events.flags.reset_pos_to_gps = true;
 					resetHorizontalPositionTo(position, pos_obs_var);
+					_gpos_origin_eph = 0.f; // The uncertainty of the global origin is now contained in the local position uncertainty
 					_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 				}
 
@@ -300,18 +305,6 @@ bool Ekf::shouldResetGpsFusion() const
 					     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
 	return (is_reset_required || is_inflight_nav_failure);
-}
-
-bool Ekf::isYawFailure() const
-{
-	if (!isYawEmergencyEstimateAvailable()) {
-		return false;
-	}
-
-	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
-
-	return fabsf(yaw_error) > math::radians(25.f);
 }
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
@@ -400,12 +393,9 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		stopGpsYawFusion();
 	}
 }
-#endif // CONFIG_EKF2_GNSS_YAW
 
 void Ekf::stopGpsYawFusion()
 {
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
 	if (_control_status.flags.gps_yaw) {
 
 		_control_status.flags.gps_yaw = false;
@@ -421,9 +411,8 @@ void Ekf::stopGpsYawFusion()
 			ECL_INFO("stopping GPS yaw fusion");
 		}
 	}
-
-#endif // CONFIG_EKF2_GNSS_YAW
 }
+#endif // CONFIG_EKF2_GNSS_YAW
 
 void Ekf::stopGpsFusion()
 {
@@ -436,5 +425,63 @@ void Ekf::stopGpsFusion()
 	}
 
 	stopGpsHgtFusion();
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	stopGpsYawFusion();
+#endif // CONFIG_EKF2_GNSS_YAW
+
+	_yawEstimator.reset();
+}
+
+bool Ekf::isYawEmergencyEstimateAvailable() const
+{
+	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
+	// data and the yaw estimate has converged
+	if (!_yawEstimator.isActive()) {
+		return false;
+	}
+
+	return _yawEstimator.getYawVar() < sq(_params.EKFGSF_yaw_err_max);
+}
+
+bool Ekf::isYawFailure() const
+{
+	if (!isYawEmergencyEstimateAvailable()) {
+		return false;
+	}
+
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
+
+	return fabsf(yaw_error) > math::radians(25.f);
+}
+
+bool Ekf::resetYawToEKFGSF()
+{
+	if (!isYawEmergencyEstimateAvailable()) {
+		return false;
+	}
+
+	// don't allow reset if there's just been a yaw reset
+	const bool yaw_alignment_changed = (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+	const bool quat_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
+
+	if (yaw_alignment_changed || quat_reset) {
+		return false;
+	}
+
+	ECL_INFO("yaw estimator reset heading %.3f -> %.3f rad",
+		 (double)getEulerYaw(_R_to_earth), (double)_yawEstimator.getYaw());
+
+	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
+
+	_control_status.flags.yaw_align = true;
+	_information_events.flags.yaw_aligned_to_imu_gps = true;
+
+	return true;
+}
+
+bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+			float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
+{
+	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
 }

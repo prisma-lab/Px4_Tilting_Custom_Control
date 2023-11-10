@@ -119,10 +119,10 @@ protected:
 	/**
 	 * @brief Has Mission a Land Start or Land Item
 	 *
-	 * @return true If mission has a land start of land item
+	 * @return true If mission has a land start of land item and a land item
 	 * @return false otherwise
 	 */
-	bool hasMissionLandStart() const { return _mission.land_start_index > 0;};
+	bool hasMissionLandStart() const { return _mission.land_start_index > 0 && _mission.land_index > 0;};
 	/**
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
@@ -279,6 +279,24 @@ protected:
 	 *
 	 */
 	void publish_navigator_mission_item();
+
+	/**
+	 * @brief Do need move to item
+	 *
+	 * @return true if the item is horizontally further away than the mission item
+	 * @return false otherwise
+	 */
+	bool do_need_move_to_item();
+
+	/**
+	 * @brief Handle landing
+	 *
+	 * @param new_work_item_type new work item type state machine to be set
+	 * @param next_mission_items the next mission items after the current mission item
+	 * @param num_found_items number of found next mission items
+	 */
+	void handleLanding(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+			   size_t &num_found_items);
 	/**
 	 * @brief I position setpoint equal
 	 *
@@ -295,6 +313,7 @@ protected:
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
+	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
@@ -428,7 +447,6 @@ private:
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
-	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 
 	mission_item_s _last_gimbal_configure_item {};

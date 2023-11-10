@@ -55,6 +55,9 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
 	_runway_takeoff(this)
+#ifdef CONFIG_FIGURE_OF_EIGHT
+	, _figure_eight(_npfg, _wind_vel, _eas2tas)
+#endif // CONFIG_FIGURE_OF_EIGHT
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
@@ -129,7 +132,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 	_tecs.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
-	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
@@ -483,16 +485,6 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 
 	const TECS::DebugOutput &debug_output{_tecs.getStatus()};
 
-	switch (_tecs.tecs_mode()) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		tecs_status.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		tecs_status.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-	}
-
 	tecs_status.altitude_sp = alt_sp;
 	tecs_status.altitude_reference = debug_output.altitude_reference;
 	tecs_status.height_rate_reference = debug_output.height_rate_reference;
@@ -514,6 +506,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
+	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 
 	tecs_status.timestamp = hrt_absolute_time();
 
@@ -895,7 +888,16 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
 	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		publishOrbitStatus(current_sp);
+#ifdef CONFIG_FIGURE_OF_EIGHT
+
+		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
+			publishFigureEightStatus(current_sp);
+
+		} else
+#endif // CONFIG_FIGURE_OF_EIGHT
+		{
+			publishOrbitStatus(current_sp);
+		}
 	}
 
 	switch (position_sp_type) {
@@ -914,9 +916,30 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+#ifdef CONFIG_FIGURE_OF_EIGHT
+		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
+			controlAutoFigureEight(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
+
+		} else
+#endif // CONFIG_FIGURE_OF_EIGHT
+		{
+			control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+
+		}
+
 		break;
 	}
+
+#ifdef CONFIG_FIGURE_OF_EIGHT
+
+	/* reset loiter state */
+	if ((position_sp_type != position_setpoint_s::SETPOINT_TYPE_LOITER) ||
+	    ((position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
+	     (current_sp.loiter_pattern != position_setpoint_s::LOITER_TYPE_FIGUREEIGHT))) {
+		_figure_eight.resetPattern();
+	}
+
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 	/* Copy thrust output for publication, handle special cases */
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -1177,7 +1200,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   tecs_status_s::TECS_MODE_NORMAL,
+				   false,
 				   pos_sp_curr.vz);
 }
 
@@ -1286,6 +1309,80 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
 }
+
+#ifdef CONFIG_FIGURE_OF_EIGHT
+void
+FixedwingPositionControl::controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+{
+	// airspeed settings
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+				_param_fw_airspd_min.get(), ground_speed);
+
+	// Lateral Control
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+
+	FigureEight::FigureEightPatternParameters params;
+	params.center_pos_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+	params.loiter_direction_counter_clockwise = pos_sp_curr.loiter_direction_counter_clockwise;
+	params.loiter_minor_radius = pos_sp_curr.loiter_minor_radius;
+	params.loiter_orientation = pos_sp_curr.loiter_orientation;
+	params.loiter_radius = pos_sp_curr.loiter_radius;
+
+	_figure_eight.initializePattern(curr_pos_local, ground_speed, params);
+
+	// Apply control
+	_figure_eight.updateSetpoint(curr_pos_local, ground_speed, params, target_airspeed);
+	_att_sp.roll_body = _figure_eight.getRollSetpoint();
+	target_airspeed = _figure_eight.getAirspeedSetpoint();
+	_target_bearing = _figure_eight.getTargetBearing();
+	_closest_point_on_path = _figure_eight.getClosestPoint();
+
+	// TECS
+	float tecs_fw_thr_min;
+	float tecs_fw_thr_max;
+
+	if (pos_sp_curr.gliding_enabled) {
+		/* enable gliding with this waypoint */
+		_tecs.set_speed_weight(2.0f);
+		tecs_fw_thr_min = 0.0;
+		tecs_fw_thr_max = 0.0;
+
+	} else {
+		tecs_fw_thr_min = _param_fw_thr_min.get();
+		tecs_fw_thr_max = _param_fw_thr_max.get();
+	}
+
+	tecs_update_pitch_throttle(control_interval,
+				   pos_sp_curr.alt,
+				   target_airspeed,
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   tecs_fw_thr_min,
+				   tecs_fw_thr_max,
+				   _param_sinkrate_target.get(),
+				   _param_climbrate_target.get());
+
+	// Yaw
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+}
+
+void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
+{
+	figure_eight_status_s figure_eight_status{};
+	figure_eight_status.timestamp = hrt_absolute_time();
+	figure_eight_status.major_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
+	figure_eight_status.minor_radius = pos_sp.loiter_minor_radius;
+	figure_eight_status.orientation = pos_sp.loiter_orientation;
+	figure_eight_status.frame = 5; //MAV_FRAME_GLOBAL_INT
+	figure_eight_status.x = static_cast<int32_t>(pos_sp.lat * 1e7);
+	figure_eight_status.y = static_cast<int32_t>(pos_sp.lon * 1e7);
+	figure_eight_status.z = pos_sp.alt;
+
+	_figure_eight_status_pub.publish(figure_eight_status);
+}
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const float control_interval,

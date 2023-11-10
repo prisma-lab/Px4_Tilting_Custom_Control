@@ -627,26 +627,6 @@ void TECSControl::resetIntegrals()
 	_throttle_integ_state = 0.0f;
 }
 
-float TECS::_update_speed_setpoint(const float tas_min, const float tas_max, const float tas_setpoint, const float tas)
-{
-	float new_setpoint{tas_setpoint};
-	const float percent_undersped = _control.getRatioUndersped();
-
-	// Set the TAS demand to the minimum value if an underspeed condition exists to maximise climb rate
-	if (percent_undersped > FLT_EPSILON) {
-		// TAS setpoint is reset from external setpoint every time tecs is called, so the interpolation is still
-		// between current setpoint and mininimum airspeed here (it's not feeding the newly adjusted setpoint
-		// from this line back into this method each time).
-		// TODO: WOULD BE GOOD to "functionalize" this library a bit and remove many of these internal states to
-		// avoid the fear of side effects in simple operations like this.
-		new_setpoint = tas_min * percent_undersped + (1.0f - percent_undersped) * tas_setpoint;
-	}
-
-	new_setpoint = constrain(new_setpoint, tas_min, tas_max);
-
-	return new_setpoint;
-}
-
 void TECS::initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
 		      const float eas_to_tas)
 {
@@ -669,7 +649,6 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
 
-	_debug_status.tecs_mode = _tecs_mode;
 	_debug_status.control = _control.getDebugOutput();
 	_debug_status.true_airspeed_filtered = eas_to_tas * _airspeed_filter.getState().speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * _airspeed_filter.getState().speed_rate;
@@ -729,11 +708,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
-
-		// Calculate the demanded true airspeed
-		// TODO this function should not be in the module. Only give feedback that the airspeed can't be achieved.
-		control_setpoint.tas_setpoint = _update_speed_setpoint(eas_to_tas * _equivalent_airspeed_min,
-						eas_to_tas * _equivalent_airspeed_max, EAS_setpoint * eas_to_tas, eas_to_tas * eas.speed);
+		control_setpoint.tas_setpoint = eas_to_tas * EAS_setpoint;
 
 		const TECSControl::Input control_input{ .altitude = altitude,
 							.altitude_rate = hgt_rate,
@@ -745,17 +720,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		// Update time stamps
 		_update_timestamp = now;
 
-
-		// Set TECS mode for next frame
-		if (_control.getRatioUndersped() > FLT_EPSILON) {
-			_tecs_mode = ECL_TECS_MODE_UNDERSPEED;
-
-		} else {
-			// This is the default operation mode
-			_tecs_mode = ECL_TECS_MODE_NORMAL;
-		}
-
-		_debug_status.tecs_mode = _tecs_mode;
 		_debug_status.control = _control.getDebugOutput();
 		_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 		_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;

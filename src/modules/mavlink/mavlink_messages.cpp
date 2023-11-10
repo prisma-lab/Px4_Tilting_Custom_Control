@@ -120,6 +120,9 @@
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+#include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
 
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
@@ -131,6 +134,7 @@
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
 # include "streams/GIMBAL_MANAGER_STATUS.hpp"
+# include "streams/GIMBAL_DEVICE_INFORMATION.hpp"
 # include "streams/GPS2_RAW.hpp"
 # include "streams/HIGH_LATENCY2.hpp"
 # include "streams/LINK_NODE_STATUS.hpp"
@@ -334,6 +338,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GIMBAL_MANAGER_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
 #endif // GIMBAL_MANAGER_INFORMATION_HPP
+#if defined(GIMBAL_DEVICE_INFORMATION_HPP)
+	create_stream_list_item<MavlinkStreamGimbalDeviceInformation>(),
+#endif // GIMBAL_DEVICE_INFORMATION_HPP
 #if defined(GIMBAL_MANAGER_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 #endif // GIMBAL_MANAGER_STATUS_HPP
@@ -431,6 +438,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ORBIT_EXECUTION_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
 #endif // ORBIT_EXECUTION_STATUS_HPP
+#if defined(FIGURE_EIGHT_EXECUTION_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamFigureEightStatus>(),
+#endif // FIGURE_EIGHT_EXECUTION_STATUS_HPP
 #if defined(OBSTACLE_DISTANCE_HPP)
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
 #endif // OBSTACLE_DISTANCE_HPP

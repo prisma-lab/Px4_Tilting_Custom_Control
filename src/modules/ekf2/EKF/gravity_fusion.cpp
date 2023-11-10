@@ -40,7 +40,7 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_gravity_innov_var_and_k_and_h.h"
+#include <ekf_derivation/generated/compute_gravity_innov_var_and_k_and_h.h>
 
 #include <mathlib/mathlib.h>
 
@@ -62,7 +62,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	Vector3f innovation_variance;
 	VectorState Kx, Ky, Kz; // Kalman gain vectors
 	sym::ComputeGravityInnovVarAndKAndH(
-		getStateAtFusionHorizonAsVector(), P, measurement, measurement_var, FLT_EPSILON,
+		_state.vector(), P, measurement, measurement_var, FLT_EPSILON,
 		&innovation, &innovation_variance, &Kx, &Ky, &Kz);
 
 	// fill estimator aid source status

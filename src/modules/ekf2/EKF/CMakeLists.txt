@@ -38,22 +38,18 @@ list(APPEND EKF_SRCS
 	covariance.cpp
 	ekf.cpp
 	ekf_helper.cpp
-	EKFGSF_yaw.cpp
 	estimator_interface.cpp
 	fake_height_control.cpp
 	fake_pos_control.cpp
-	gnss_height_control.cpp
-	gps_checks.cpp
-	gps_control.cpp
-	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	output_predictor.cpp
 	vel_pos_fusion.cpp
 	yaw_fusion.cpp
 	zero_innovation_heading_update.cpp
-	zero_gyro_update.cpp
-	zero_velocity_update.cpp
+
+	aid_sources/ZeroGyroUpdate.cpp
+	aid_sources/ZeroVelocityUpdate.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
@@ -84,8 +80,21 @@ if(CONFIG_EKF2_EXTERNAL_VISION)
 	)
 endif()
 
+if(CONFIG_EKF2_GNSS)
+	list(APPEND EKF_SRCS
+		gnss_height_control.cpp
+		gps_checks.cpp
+		gps_control.cpp
+		EKFGSF_yaw.cpp
+	)
+endif()
+
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GRAVITY_FUSION)
+	list(APPEND EKF_SRCS gravity_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)
@@ -125,5 +134,6 @@ add_library(ecl_EKF
 )
 
 add_dependencies(ecl_EKF prebuild_targets)
+target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
 target_compile_options(ecl_EKF PRIVATE -fno-associative-math)

@@ -123,9 +123,10 @@ PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
 PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 
 /**
- * RC loss time threshold
+ * Manual control loss timeout
  *
- * After this amount of seconds without RC connection it's considered lost and not used anymore
+ * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
+ * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
  *
  * @group Commander
  * @unit s
@@ -262,7 +263,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
  * for the user to realize.
- * During that time the user cannot take over control via the stick override feature see COM_RC_OVERRIDE.
+ * During that time the user cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
  * Afterwards the configured failsafe action is triggered and the user may use stick override.
  *
  * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
@@ -918,7 +919,9 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
 
 /**
- * Maximum allowed CPU load to still arm
+ * Maximum allowed CPU load to still arm.
+ *
+ * The check fails if the CPU load is above this threshold for 2s.
  *
  * A negative value disables the check.
  *
@@ -1051,14 +1054,10 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
 PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
 
 /**
- * Wind speed RTL threshold
+ * High wind speed failsafe threshold
  *
- * Wind speed threshold above which an automatic return to launch is triggered.
- * It is not possible to resume the mission or switch to any auto mode other than
- * RTL or Land if this threshold is exceeded. Taking over in any manual
- * mode is still possible.
- *
- * Set to -1 to disable.
+ * Wind speed threshold above which an automatic failsafe action is triggered.
+ * Failsafe action can be specified with COM_WIND_MAX_ACT.
  *
  * @min -1
  * @decimal 1
@@ -1067,6 +1066,27 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+
+/**
+ * High wind failsafe mode
+ *
+ * Action the system takes when a wind speed above the specified threshold is detected.
+ * See COM_WIND_MAX to set the failsafe threshold.
+ * If enabled, it is not possible to resume the mission or switch to any auto mode other than
+ * RTL or Land if this threshold is exceeded. Taking over in any manual
+ * mode is still possible.
+ *
+ * @group Commander
+ *
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Hold
+ * @value 3 Return
+ * @value 4 Terminate
+ * @value 5 Land
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_WIND_MAX_ACT, 0);
 
 /**
  * EPH threshold for RTL
@@ -1097,3 +1117,20 @@ PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ARMABLE, 1);
+
+/**
+ * Minimum battery level for arming
+ *
+ * Additional battery level check that only allows arming if the state of charge of the emptiest
+ *  connected battery is above this value.
+ *
+ * A value of 0 disables the check.
+ *
+ * @unit norm
+ * @min 0
+ * @max 0.9
+ * @decimal 2
+ * @increment 0.01
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, 0.f);

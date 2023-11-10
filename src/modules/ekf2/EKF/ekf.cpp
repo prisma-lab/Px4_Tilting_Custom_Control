@@ -57,14 +57,20 @@ void Ekf::reset()
 {
 	ECL_INFO("reset");
 
+	_state.quat_nominal.setIdentity();
 	_state.vel.setZero();
 	_state.pos.setZero();
 	_state.gyro_bias.setZero();
 	_state.accel_bias.setZero();
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_state.mag_I.setZero();
 	_state.mag_B.setZero();
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel.setZero();
-	_state.quat_nominal.setIdentity();
+#endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
@@ -86,7 +92,11 @@ void Ekf::reset()
 	_prev_gyro_bias_var.zero();
 	_prev_accel_bias_var.zero();
 
+#if defined(CONFIG_EKF2_GNSS)
 	resetGpsDriftCheckFilters();
+	_gps_checks_passed = false;
+#endif // CONFIG_EKF2_GNSS
+	_gps_alt_ref = NAN;
 
 	_output_predictor.reset();
 
@@ -100,14 +110,10 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
-	_time_last_zero_velocity_fuse = 0;
 
 	_last_known_pos.setZero();
 
 	_time_acc_bias_check = 0;
-
-	_gps_checks_passed = false;
-	_gps_alt_ref = NAN;
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
@@ -141,13 +147,15 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_ev_yaw);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_GNSS)
 	resetEstimatorAidStatus(_aid_src_gnss_hgt);
 	resetEstimatorAidStatus(_aid_src_gnss_pos);
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
+# if defined(CONFIG_EKF2_GNSS_YAW)
 	resetEstimatorAidStatus(_aid_src_gnss_yaw);
-#endif // CONFIG_EKF2_GNSS_YAW
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetEstimatorAidStatus(_aid_src_mag_heading);
@@ -166,6 +174,8 @@ void Ekf::reset()
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	resetEstimatorAidStatus(_aid_src_rng_hgt);
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+	_zero_velocity_update.reset();
 }
 
 bool Ekf::update()
@@ -185,6 +195,14 @@ bool Ekf::update()
 		// get the oldest IMU data from the buffer
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();
+
+		// calculate an average filter update time
+		//  filter and limit input between -50% and +100% of nominal value
+		float input = 0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt);
+		float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
+
+		updateIMUBiasInhibit(imu_sample_delayed);
 
 		// perform state and covariance prediction for the main filter
 		predictCovariance(imu_sample_delayed);
@@ -296,13 +314,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 
 	constrainStates();
 
-	// calculate an average filter update time
-	float input = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
-
-	// filter and limit input between -50% and +100% of nominal value
-	const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
-	input = math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
-	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
 	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
@@ -324,4 +335,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
 	// Note fixed coefficients are used to save operations. The exact time constant is not important.
 	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu_delayed.delta_ang_dt;
+
+	// Calculate low pass filtered height rate
+	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant
+	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
