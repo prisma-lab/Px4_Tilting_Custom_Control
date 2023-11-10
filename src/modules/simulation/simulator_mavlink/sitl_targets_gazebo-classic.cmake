@@ -104,6 +104,10 @@ if(gazebo_FOUND)
 		typhoon_h480
 		uuv_bluerov2_heavy
 		uuv_hippocampus
+		# CUSTOM
+		NDT_tilting
+		tilting_quadrotor
+		baby_k
 	)
 
 	set(worlds

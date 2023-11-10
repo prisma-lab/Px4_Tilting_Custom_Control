@@ -100,5 +100,10 @@ px4_add_romfs_files(
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
+	# CUSTOM
+	25001_gazebo-classic_tilting_quadrotor
+	25002_gazebo-classic_baby_k
+	25003_gazebo-classic_NDT_tilting
+
 	# [22000, 22999] Reserve for custom models
 )

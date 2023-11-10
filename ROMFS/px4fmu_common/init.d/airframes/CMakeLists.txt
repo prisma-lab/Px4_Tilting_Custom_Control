@@ -124,4 +124,8 @@ px4_add_romfs_files(
 	60000_uuv_generic
 	60001_uuv_hippocampus
 	60002_uuv_bluerov2_heavy
+
+	# CUSTOM #
+	25003_generic_tilting_multirotor
+	# END-CUSTOM #
 )
