@@ -118,6 +118,11 @@ MulticopterRateControl::Run()
 		parameters_updated();
 	}
 
+	/*** CUSTOM ***/
+	tilting_servo_sp_s old_servo_sp;
+	tilting_servo_sp_s new_servo_sp;
+	/*** END-CUSTOM ***/
+
 	/* run controller on gyro changes */
 	vehicle_angular_velocity_s angular_velocity;
 
@@ -248,6 +253,12 @@ MulticopterRateControl::Run()
 					}
 				}
 			}
+
+			if (_tilting_servo_sub.update(&new_servo_sp)){
+				old_servo_sp = new_servo_sp;
+			}
+			old_servo_sp.timestamp = hrt_absolute_time();
+			_tilting_servo_pub.publish(old_servo_sp);
 
 			vehicle_thrust_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_thrust_setpoint.timestamp = hrt_absolute_time();

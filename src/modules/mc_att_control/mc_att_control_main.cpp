@@ -274,11 +274,6 @@ MulticopterAttitudeControl::Run()
 	// run controller on attitude updates
 	vehicle_attitude_s v_att;
 
-	/*** CUSTOM ***/
-	tilting_servo_sp_s old_servo_sp;
-	tilting_servo_sp_s new_servo_sp;
-	/*** END-CUSTOM ***/
-
 	if (_vehicle_attitude_sub.update(&v_att)) {
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -372,13 +367,6 @@ MulticopterAttitudeControl::Run()
 			} else {
 				_man_roll_input_filter.reset(0.f);
 				_man_pitch_input_filter.reset(0.f);
-
-				if (_tilting_servo_sub.update(&new_servo_sp)){
-					old_servo_sp = new_servo_sp;
-				}
-
-				old_servo_sp.timestamp = hrt_absolute_time();
-				_tilting_servo_pub.publish(old_servo_sp);
 			}
 
 			Vector3f rates_sp = _attitude_control.update(q);
