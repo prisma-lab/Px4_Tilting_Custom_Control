@@ -121,3 +121,29 @@ PARAM_DEFINE_FLOAT(PRISMA_Z_TOR, 0.848f);
  * @value 2 Yaw
  */
 PARAM_DEFINE_INT32(PRISMA_ANG_MODE, 2);
+
+//Custom
+/**
+ * Mass matrix for attitude admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_M_ADT, 30.0f);
+
+/**
+ * KP matrix for attitude admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KP_ADT, 20.0f);
+
+/**
+ * KD matrix for attitude admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KD_ADT, 50.0f);
+//END Custom

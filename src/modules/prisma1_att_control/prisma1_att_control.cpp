@@ -15,6 +15,18 @@ Prisma1AttitudeControl::Prisma1AttitudeControl() :
 
 	_counter = 0;
 	_is_active = false;
+	
+	// Custom
+	_p_adm(0) = 0.0f;
+	_p_adm(1) = 0.0f;
+	_p_adm(2) = 0.0f;
+	_pd_adm(0) = 0.0f;
+	_pd_adm(1) = 0.0f;
+	_pd_adm(2) = 0.0f;
+	_pdd_adm(0) = 0.0f;
+	_pdd_adm(1) = 0.0f;
+	_pdd_adm(2) = 0.0f;
+	// END Custom
 }
 
 bool Prisma1AttitudeControl::init()
@@ -37,6 +49,10 @@ void Prisma1AttitudeControl::parameters_update(bool force)
 
 		// update parameters from storage
 		ModuleParams::updateParams();
+
+		// Custom
+		setAdmGains(Vector3f(_param_m_adm.get(), _param_kd_adm.get(), _param_kp_adm.get()));
+		// END CUSTOM
 
 		_control.setMass(_param_mass.get());
 		_control.setIb(_param_ibx.get(), _param_iby.get(), _param_ibz.get());
@@ -86,6 +102,42 @@ int Prisma1AttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
+// Custom
+void Prisma1AttitudeControl::setAdmGains(Vector3f adm) {
+	_Kp(0) = adm(2);
+	_Kp(1) = adm(2);
+	_Kp(2) = adm(2);
+
+	_Kd(0) = adm(1);
+	_Kd(1) = adm(1);
+	_Kd(2) = adm(1);
+
+	_M(0) = adm(0);
+	_M(1) = adm(0);
+	_M(2) = adm(0);
+}
+
+void Prisma1AttitudeControl::adm_filter(double dt){
+	matrix::Vector3f f_fb;
+	matrix::Matrix3f R_rot;
+	R_rot(0,0) = 0.0f;
+	R_rot(0,1) = 0.0f;
+	R_rot(0,2) = -1.0f;
+    R_rot(1,0) = 0.0f;
+	R_rot(1,1) = -1.0f;
+	R_rot(1,2) = 0.0f;
+    R_rot(2,0) = -1.0f;
+	R_rot(2,1) = 0.0f;
+	R_rot(2,2) = 0.0f;
+	f_fb = inv(R_rot)*Vector3f(_ft_fb.torque[0], _ft_fb.torque[1], _ft_fb.torque[2]);
+    _pdd_adm = inv(diag(_M))*(f_fb - diag(_Kd)*_pd_adm - diag(_Kp)*_p_adm);
+	_pd_adm = _pd_adm + _pdd_adm*dt;
+	_p_adm = _p_adm + _pd_adm*dt;
+	_setpoint_temp.yaw_sp = _setpoint.yaw_sp + _p_adm(2);
+	_setpoint_temp.yaw_dot_sp = _setpoint.yaw_dot_sp + _pd_adm(2);
+}
+// End Custom
+
 void Prisma1AttitudeControl::Run()
 {
 
@@ -131,8 +183,17 @@ void Prisma1AttitudeControl::Run()
 			_setpoint.yaw_sp = _traj_sp.yaw;
 			_setpoint.yaw_dot_sp = _traj_sp.yawspeed;
 			_setpoint.yaw_ddot_sp = 0.0f;
-			_control.setInputSetpoint(_setpoint);
 
+			// Custom
+			_ft_sensor_sub.update(&_ft_fb);
+			// PX4_INFO("force fb: %f, %f, %f", (double)_ft_fb.force[0], (double)_ft_fb.force[1], (double)_ft_fb.force[2]);
+
+            adm_filter(dt);
+		    // PX4_INFO("pos correction: %f, %f, %f", (double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
+			// End Custom
+
+			_control.setInputSetpoint(_setpoint_temp);
+            	// PX4_INFO("Setpoint yaw and yaw_dot: %f, %f", (double)_setpoint_temp.yaw_sp, (double)_setpoint_temp.yaw_dot_sp);
 			_control.setState(state);
 
 			#ifdef TILT_CONTROL
@@ -166,12 +227,28 @@ void Prisma1AttitudeControl::Run()
 			_control.getThrustSetpoint(thrust_sp);
 			_control.getTorqueSetpoint(torque_sp);
 
+			/*** CUSTOM ***/
+			tilting_servo_sp_s tilting_servo_sp;
+			if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
+				if(_tilting_servo_sp_sub.update(&tilting_servo_sp))
+					_tilting_angle_sp = tilting_servo_sp.angle[0];
+			}
+			else
+				_tilting_angle_sp = tilting_servo_sp.angle[0] = 0.0f;
+			/*** END-CUSTOM ***/
+
 			actuators.control[0] = torque_sp.xyz[0];
 			actuators.control[1] = torque_sp.xyz[1];
 			actuators.control[2] = torque_sp.xyz[2];
 			actuators.control[3] = -thrust_sp.xyz[2];
 			actuators.control[7] = -1;
 			actuators.timestamp = thrust_sp.timestamp;
+
+			/*** CUSTOM ***/
+			if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
+				actuators.control[4] = PX4_ISFINITE(_tilting_angle_sp) ? _tilting_angle_sp : 0.0f;
+			}
+			/*** END-CUSTOM ***/
 
 
 			if(_counter == 0) {

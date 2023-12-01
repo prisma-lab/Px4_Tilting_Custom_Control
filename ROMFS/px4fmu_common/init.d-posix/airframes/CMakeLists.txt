@@ -84,6 +84,7 @@ px4_add_romfs_files(
 	25001_generic_tilting_multirotor
 	25002_koala_tilting_octo_H
 	25003_NDT_tilting
+	25007_NDT_tilting_interaction
 	25004_baby_k
 	25005_baby_k_interaction
 	25006_koala

@@ -24,6 +24,10 @@
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/actuator_controls.h>
 
+// Custom
+#include <uORB/topics/ft_sensor.h>
+#include <uORB/topics/tilting_servo_sp.h>
+/*** END-CUSTOM ***/
 
 // #define TILT_CONTROL
 #define GEOM_CONTROL
@@ -63,6 +67,11 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+	
+	// Custom
+	void setAdmGains(matrix::Vector3f adm);
+	void adm_filter(double dt);
+	// End Custom
 
 private:
 	bool _is_active;
@@ -85,6 +94,10 @@ private:
 
 	// Setpoints from planner
 	uORB::Subscription _trajectory_setpoint_sub {ORB_ID(trajectory_setpoint)};
+	
+	// Custom
+	uORB::Subscription _ft_sensor_sub {ORB_ID(ft_sensor)};
+    // End Custom
 
 	// Publications
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
@@ -100,6 +113,18 @@ private:
 	// Control inputs
 	AttitudeControlInput _setpoint;
 
+    // Custom
+	AttitudeControlInput _setpoint_temp;
+    ft_sensor_s _ft_fb {};
+	matrix::Vector3f _Kp, _Kd, _M;
+	matrix::Vector3f _pdd_adm, _pd_adm, _p_adm;
+	// End Custom
+
+	/*** CUSTOM ***/
+	uORB::Subscription _tilting_servo_sp_sub{ORB_ID(tilting_servo_setpoint)};
+	float _tilting_angle_sp{0.0f}; /**< [rad] angle setpoint for tilting servo motors */
+	matrix::Vector3f _thrust_setpoint{};
+	/*** END-CUSOTM ***/
 
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
@@ -121,6 +146,16 @@ private:
 		(ParamFloat<px4::params::PRISMA_C2>) _param_c2,
 		(ParamFloat<px4::params::PRISMA_KQ_XY>) _param_xy_kq,
 		(ParamFloat<px4::params::PRISMA_KQ_Z>) _param_z_kq,
-		(ParamInt<px4::params::PRISMA_ANG_MODE>) _param_angleInputMode
+		(ParamInt<px4::params::PRISMA_ANG_MODE>) _param_angleInputMode,
+		// Custom
+		(ParamFloat<px4::params::PRISMA_M_ADT>)   _param_m_adm,
+		(ParamFloat<px4::params::PRISMA_KD_ADT>)   _param_kd_adm,
+		(ParamFloat<px4::params::PRISMA_KP_ADT>)   _param_kp_adm,
+		(ParamFloat<px4::params::CA_SV_TL0_MINA>) _param_tilt_min_angle,
+		(ParamFloat<px4::params::CA_SV_TL0_MAXA>) _param_tilt_max_angle,
+		(ParamInt<px4::params::CA_TILTING_TYPE>)    _param_tilting_type, 	/**< 0:h-tilting, 1:omnidirectional*/
+		(ParamInt<px4::params::CA_AIRFRAME>)	    _param_airframe, 		/**< 11: tilting_multirotors */
+		(ParamInt<px4::params::MC_PITCH_ON_TILT>)   _param_mpc_pitch_on_tilt
+		//End Custom
 	);
 };

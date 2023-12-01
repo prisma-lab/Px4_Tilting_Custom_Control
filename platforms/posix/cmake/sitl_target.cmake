@@ -180,7 +180,9 @@ set(models
 
 	#*** CUSTOM
 	NDT_tilting
+	NDT_tilting_interaction
 	baby_k
+	baby_k_interaction
 	#*** END-CUSTOM
 )
 

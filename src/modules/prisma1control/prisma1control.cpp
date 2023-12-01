@@ -60,6 +60,18 @@ Prisma1Control::Prisma1Control() :
 	_counter = 0;
 	_is_active = false;
 	_flying = false;
+
+	// Custom
+	_p_adm(0) = 0.0f;
+	_p_adm(1) = 0.0f;
+	_p_adm(2) = 0.0f;
+	_pd_adm(0) = 0.0f;
+	_pd_adm(1) = 0.0f;
+	_pd_adm(2) = 0.0f;
+	_pdd_adm(0) = 0.0f;
+	_pdd_adm(1) = 0.0f;
+	_pdd_adm(2) = 0.0f;
+	// END Custom
 }
 
 bool Prisma1Control::init()
@@ -94,6 +106,9 @@ void Prisma1Control::parameters_update(bool force)
 		_control.setIntGains(Vector3f(_param_xy_i.get(), _param_xy_i.get(), _param_z_i.get()));
 		_control.setMass(_param_mass.get());
 		_control.setStartZInt(_param_start_z_int.get());
+		// Custom
+		setAdmGains(Vector3f(_param_m_adm.get(), _param_kd_adm.get(), _param_kp_adm.get()));
+		// END CUSTOM
 		#ifdef GEOM_CONTROL
 		_control.setSigma(_param_sigma.get());
 		_control.setC1(_param_c1.get());
@@ -150,6 +165,51 @@ PositionControlState Prisma1Control::set_vehicle_state(const vehicle_local_posit
 	}
 	return state;
 }
+
+// Custom
+void Prisma1Control::setAdmGains(Vector3f adm) {
+	_Kp(0) = adm(2);
+	_Kp(1) = adm(2);
+	_Kp(2) = adm(2);
+
+	_Kd(0) = adm(1);
+	_Kd(1) = adm(1);
+	_Kd(2) = adm(1);
+
+	_M(0) = adm(0);
+	_M(1) = adm(0);
+	_M(2) = adm(0);
+}
+
+void Prisma1Control::adm_filter(double dt){
+	matrix::Vector3f f_fb;
+	matrix::Matrix3f R_rot;
+	R_rot(0,0) = 0.0f;
+	R_rot(0,1) = 0.0f;
+	R_rot(0,2) = -1.0f;
+    R_rot(1,0) = 0.0f;
+	R_rot(1,1) = -1.0f;
+	R_rot(1,2) = 0.0f;
+    R_rot(2,0) = -1.0f;
+	R_rot(2,1) = 0.0f;
+	R_rot(2,2) = 0.0f;
+	f_fb = inv(R_rot)*Vector3f(_ft_fb.force[0], _ft_fb.force[1], _ft_fb.force[2]);
+    _pdd_adm = inv(diag(_M))*(f_fb - diag(_Kd)*_pd_adm - diag(_Kp)*_p_adm);
+	_pd_adm = _pd_adm + _pdd_adm*dt;
+	_p_adm = _p_adm + _pd_adm*dt;
+	_setpoint_temp.x = _setpoint.x + _p_adm(0);
+	_setpoint_temp.y = _setpoint.y + _p_adm(1);
+	_setpoint_temp.z = _setpoint.z + _p_adm(2);
+	_setpoint_temp.vx = _setpoint.vx + _pd_adm(0);
+	_setpoint_temp.vy = _setpoint.vy + _pd_adm(1);
+	_setpoint_temp.vz = _setpoint.vz + _pd_adm(2);
+	_setpoint_temp.acceleration[0] = _setpoint.acceleration[0] + _pdd_adm(0);
+	_setpoint_temp.acceleration[1] = _setpoint.acceleration[1] + _pdd_adm(1);
+	_setpoint_temp.acceleration[2] = _setpoint.acceleration[2] + _pdd_adm(2);	
+	_setpoint_temp.yaw = _setpoint.yaw;
+	_setpoint_temp.yawspeed = _setpoint.yawspeed;
+}
+// End Custom
 
 PositionControlInput Prisma1Control::set_control_input(const vehicle_local_position_setpoint_s &setpoint) {
 	PositionControlInput input;
@@ -232,6 +292,11 @@ void Prisma1Control::Run()
 				_control.resetIntegral();
 				// PX4_WARN("Resetting position integral");
 			}		
+			
+			// Custom
+			_ft_sensor_sub.update(&_ft_fb);
+			// PX4_INFO("force fb: %f, %f, %f", (double)_ft_fb.force[0], (double)_ft_fb.force[1], (double)_ft_fb.force[2]);
+			// End Custom
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {
@@ -343,22 +408,27 @@ void Prisma1Control::Run()
 			// 	math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 			// 	math::max(speed_down, 0.f));
 
-			
+			// Custom		
+            adm_filter(dt);
+		    // PX4_INFO("pos correction: %f, %f, %f", (double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
+
+			// End Custom
+
 			// Here I set the input to the controller
-			PositionControlInput input{set_control_input(_setpoint)};
+			PositionControlInput input{set_control_input(_setpoint_temp)};
 			
 			_control.setInputSetpoint(input);
 
 			if(!_counter) {
-				// PX4_INFO("----------------------------");
-				// PX4_INFO("Setpoint position:        %f, %f, %f",
-				// 	(double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
-				// PX4_INFO("Setpoint velocity:        %f, %f, %f",
-				// 	(double)_setpoint.vx, (double)_setpoint.vy, (double)_setpoint.vz);
-				// PX4_INFO("Setpoint acceleration:    %f, %f, %f",
-				// 	(double)_setpoint.acceleration[0], (double)_setpoint.acceleration[1], (double)_setpoint.acceleration[2]);
-				// PX4_INFO("Setpoint yaw and yaw_dot: %f, %f",
-				// 	(double)_setpoint.yaw, (double)_setpoint.yawspeed);
+				PX4_INFO("----------------------------");
+				PX4_INFO("Setpoint position:        %f, %f, %f",
+					(double)_setpoint_temp.x, (double)_setpoint_temp.y, (double)_setpoint_temp.z);
+				PX4_INFO("Setpoint velocity:        %f, %f, %f",
+					(double)_setpoint_temp.vx, (double)_setpoint_temp.vy, (double)_setpoint_temp.vz);
+				PX4_INFO("Setpoint acceleration:    %f, %f, %f",
+					(double)_setpoint_temp.acceleration[0], (double)_setpoint_temp.acceleration[1], (double)_setpoint_temp.acceleration[2]);
+				PX4_INFO("Setpoint yaw and yaw_dot: %f, %f",
+					(double)_setpoint_temp.yaw, (double)_setpoint_temp.yawspeed);
 			}
 
 			/*const float speed_up = */_takeoff.updateRamp(dt,
@@ -405,6 +475,65 @@ void Prisma1Control::Run()
 			// Publish the output of the position controller
 			POS_OUT_S pos_out;
 			_control.getControlOutput(&pos_out);
+			// Custom
+			#ifdef GEOM_CONTROL
+			Vector3f rpy;
+			Matrix3f _Rc;
+			_Rc(0,0) = pos_out.rc[0];
+			_Rc(0,1) = pos_out.rc[1];
+			_Rc(0,2) = pos_out.rc[2];
+			_Rc(1,0) = pos_out.rc[3];
+			_Rc(1,1) = pos_out.rc[4];
+			_Rc(1,2) = pos_out.rc[5];
+			_Rc(2,0) = pos_out.rc[6];
+			_Rc(2,1) = pos_out.rc[7];
+			_Rc(2,2) = pos_out.rc[8];
+			rpy = (Eulerf(_Rc)); // virtual attitude setpoints
+			if(_param_airframe.get() == 11 && _param_tilting_type.get() == 0){ //If H-tilting multirotor
+
+				_tilting_servo_sp.angle[0] = math::constrain(rpy(1),
+								_param_des_pitch_min.get(), _param_des_pitch_max.get());
+
+				_tilting_servo_sp.timestamp = hrt_absolute_time();
+
+				rpy(1) = 0.0;
+				float r, p, y;
+				r = rpy(0);
+				p = rpy(1);
+				y = rpy(2);
+
+				float cf = cos(y);
+				float sf = sin(y);
+
+				float ct = cos(p);
+				float st = sin(p);
+
+				float cp = cos(r);
+				float sp = sin(r);
+
+				_Rc(0,0) = cf*ct;
+				_Rc(0,1) = cf*st*sp-sf*cp;
+				_Rc(0,2) = cf*st*cp + sf*sp;
+				_Rc(1,0) = sf*ct;
+				_Rc(1,1) = sf*st*sp+cf*cp;
+				_Rc(1,2) = sf*st*cp - cf*sp;
+				_Rc(2,0) = -st;
+				_Rc(2,1) = ct*sp;
+				_Rc(2,2) = ct*cp;
+
+				pos_out.rc[0] = _Rc(0,0);
+				pos_out.rc[1] = _Rc(0,1);
+				pos_out.rc[2] = _Rc(0,2);
+				pos_out.rc[3] = _Rc(1,0);
+				pos_out.rc[4] = _Rc(1,1);
+				pos_out.rc[5] = _Rc(1,2);
+				pos_out.rc[6] = _Rc(2,0);
+				pos_out.rc[7] = _Rc(2,1);
+				pos_out.rc[8] = _Rc(2,2);
+				_tilting_servo_setpoint_pub.publish(_tilting_servo_sp);
+			}
+			#endif
+			// End Custom
 			_pos_out_pub.publish(pos_out);
 
 

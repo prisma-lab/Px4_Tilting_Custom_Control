@@ -71,3 +71,29 @@ PARAM_DEFINE_FLOAT(PRISMA_MASS, 1.5f);
  * @group PRISMA
  */
 PARAM_DEFINE_FLOAT(PRISMA_Z_INT_S, 0.0f);
+
+//Custom
+/**
+ * Mass matrix for admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_M_ADM, 30.0f);
+
+/**
+ * KP matrix for admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KP_ADM, 20.0f);
+
+/**
+ * KD matrix for admittance filter
+ *
+ * @decimal 2
+ * @group PRISMA
+ */
+PARAM_DEFINE_FLOAT(PRISMA_KD_ADM, 50.0f);
+//END Custom

@@ -78,6 +78,7 @@ set(msg_files
 	estimator_status.msg
 	estimator_status_flags.msg
 	event.msg
+	ft_sensor.msg
 	follow_target.msg
 	failure_detector_status.msg
 	generator_status.msg

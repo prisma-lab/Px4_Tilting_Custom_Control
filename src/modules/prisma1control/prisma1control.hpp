@@ -77,6 +77,11 @@
 #include <uORB/topics/prisma_geom_pos_out.h>
 #include <uORB/topics/prisma_tilt_pos_out.h>
 
+// Custom
+#include <uORB/topics/ft_sensor.h>
+#include <uORB/topics/tilting_servo_sp.h>
+// End Custom
+
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/debug_key_value.h>
 #include <cstring>
@@ -120,6 +125,10 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+	// Custom
+	void setAdmGains(matrix::Vector3f adm);
+	void adm_filter(double dt);
+	// End Custom
 
 private:
 	bool _is_active;
@@ -152,14 +161,33 @@ private:
 	
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	// Custom
+	uORB::Subscription _ft_sensor_sub {ORB_ID(ft_sensor)};
+    // End Custom
+
 	uORB::Subscription _hover_thrust_estimate_sub {ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub {ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub {ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub {ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub {ORB_ID(vehicle_land_detected)};
 
+	// /*** CUSTOM ***/
+	uORB::Publication<tilting_servo_sp_s> _tilting_servo_setpoint_pub {ORB_ID(tilting_servo_setpoint)};
+	float _tilting_mc_roll_sp{0.0f};
+	float _tilting_mc_pitch_sp{0.0f};
+	tilting_servo_sp_s _tilting_servo_sp {};
+	hrt_abstime _last_angles_setpoint{0};
+	// /*** END-CUSTOM ***/
+
 	vehicle_local_position_setpoint_s _setpoint {};
 	vehicle_control_mode_s _vehicle_control_mode {};
+
+    // Custom
+	vehicle_local_position_setpoint_s _setpoint_temp {};
+    ft_sensor_s _ft_fb {};
+	matrix::Vector3f _Kp, _Kd, _M;
+	matrix::Vector3f _pdd_adm, _pd_adm, _p_adm;
+	// End Custom
 
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
@@ -230,7 +258,17 @@ private:
 		(ParamFloat<px4::params::PRISMA_MASS>)      _param_mass,
 		(ParamFloat<px4::params::PRISMA_C1>)        _param_c1,
 		(ParamFloat<px4::params::PRISMA_SIGMA>)     _param_sigma,
-		(ParamFloat<px4::params::PRISMA_Z_INT_S>)   _param_start_z_int
+		(ParamFloat<px4::params::PRISMA_Z_INT_S>)   _param_start_z_int,
+		// Custom
+		(ParamFloat<px4::params::PRISMA_M_ADM>)   _param_m_adm,
+		(ParamFloat<px4::params::PRISMA_KD_ADM>)   _param_kd_adm,
+		(ParamFloat<px4::params::PRISMA_KP_ADM>)   _param_kp_adm,
+		(ParamInt<px4::params::CA_TILTING_TYPE>)    _param_tilting_type, 		/**< 0:h-tilting, 1:omnidirectional*/
+		(ParamInt<px4::params::CA_AIRFRAME>)	    _param_airframe, 			/**< 11: tilting_multirotors */
+		(ParamInt<px4::params::MC_PITCH_ON_TILT>)   _param_mpc_pitch_on_tilt,    /**< map the pitch angle on the tilt */
+		(ParamFloat<px4::params::MC_DES_PITCH_MAX>) _param_des_pitch_max,		/**< maximum desired pitch for tilting drones*/
+		(ParamFloat<px4::params::MC_DES_PITCH_MIN>) _param_des_pitch_min		/**< minimum desired pitch for tilting drones*/
+		//End Custom
 	);
 	
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);

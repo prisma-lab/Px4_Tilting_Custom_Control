@@ -107,9 +107,9 @@ void AttitudeControlTilt::_attitudeController()
 	Eulerf eul_des(_q_buf);
 	if (!_counter)
 	{
-		PX4_INFO("--------------------");
-		PX4_INFO("Integral:   %f, %f, %f",
-			(double)_integral(0), (double)_integral(1), (double)_integral(2));
+//		PX4_INFO("--------------------");
+//		PX4_INFO("Integral:   %f, %f, %f",
+//			(double)_integral(0), (double)_integral(1), (double)_integral(2));
 	}
 }
 
