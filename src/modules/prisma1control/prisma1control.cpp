@@ -71,6 +71,9 @@ Prisma1Control::Prisma1Control() :
 	_pdd_adm(0) = 0.0f;
 	_pdd_adm(1) = 0.0f;
 	_pdd_adm(2) = 0.0f;
+	_y_adm = 0.0f;
+	_yd_adm = 0.0f;
+	_ydd_adm = 0.0f;
 	// END Custom
 }
 
@@ -107,7 +110,7 @@ void Prisma1Control::parameters_update(bool force)
 		_control.setMass(_param_mass.get());
 		_control.setStartZInt(_param_start_z_int.get());
 		// Custom
-		setAdmGains(Vector3f(_param_m_adm.get(), _param_kd_adm.get(), _param_kp_adm.get()));
+		setAdmGains(Vector3f(_param_m_adm.get(), _param_kd_adm.get(), _param_kp_adm.get()), Vector3f(_param_m_adt.get(), _param_kd_adt.get(), _param_kp_adt.get()));
 		// END CUSTOM
 		#ifdef GEOM_CONTROL
 		_control.setSigma(_param_sigma.get());
@@ -167,7 +170,7 @@ PositionControlState Prisma1Control::set_vehicle_state(const vehicle_local_posit
 }
 
 // Custom
-void Prisma1Control::setAdmGains(Vector3f adm) {
+void Prisma1Control::setAdmGains(Vector3f adm, Vector3f adt) {
 	_Kp(0) = adm(2);
 	_Kp(1) = adm(2);
 	_Kp(2) = adm(2);
@@ -179,10 +182,14 @@ void Prisma1Control::setAdmGains(Vector3f adm) {
 	_M(0) = adm(0);
 	_M(1) = adm(0);
 	_M(2) = adm(0);
+
+	_Kyp = adt(2);
+	_Kyd = adt(1);
+	_My = adt(0);
 }
 
 void Prisma1Control::adm_filter(double dt){
-	matrix::Vector3f f_fb;
+	matrix::Vector3f f_fb, t_fb;
 	matrix::Matrix3f R_rot;
 	R_rot(0,0) = 0.0f;
 	R_rot(0,1) = 0.0f;
@@ -194,20 +201,24 @@ void Prisma1Control::adm_filter(double dt){
 	R_rot(2,1) = 0.0f;
 	R_rot(2,2) = 0.0f;
 	f_fb = inv(R_rot)*Vector3f(_ft_fb.force[0], _ft_fb.force[1], _ft_fb.force[2]);
+	t_fb = inv(R_rot)*Vector3f(_ft_fb.torque[0], _ft_fb.torque[1], _ft_fb.torque[2]);
     _pdd_adm = inv(diag(_M))*(f_fb - diag(_Kd)*_pd_adm - diag(_Kp)*_p_adm);
 	_pd_adm = _pd_adm + _pdd_adm*dt;
 	_p_adm = _p_adm + _pd_adm*dt;
-	_setpoint_temp.x = _setpoint.x + _p_adm(0);
-	_setpoint_temp.y = _setpoint.y + _p_adm(1);
-	_setpoint_temp.z = _setpoint.z + _p_adm(2);
-	_setpoint_temp.vx = _setpoint.vx + _pd_adm(0);
-	_setpoint_temp.vy = _setpoint.vy + _pd_adm(1);
-	_setpoint_temp.vz = _setpoint.vz + _pd_adm(2);
-	_setpoint_temp.acceleration[0] = _setpoint.acceleration[0] + _pdd_adm(0);
-	_setpoint_temp.acceleration[1] = _setpoint.acceleration[1] + _pdd_adm(1);
-	_setpoint_temp.acceleration[2] = _setpoint.acceleration[2] + _pdd_adm(2);	
-	_setpoint_temp.yaw = _setpoint.yaw;
-	_setpoint_temp.yawspeed = _setpoint.yawspeed;
+	_setpoint.x = _setpoint.x + _p_adm(0);
+	_setpoint.y = _setpoint.y + _p_adm(1);
+	_setpoint.z = _setpoint.z + _p_adm(2);
+	_setpoint.vx = _setpoint.vx + _pd_adm(0);
+	_setpoint.vy = _setpoint.vy + _pd_adm(1);
+	_setpoint.vz = _setpoint.vz + _pd_adm(2);
+	_setpoint.acceleration[0] = _setpoint.acceleration[0] + _pdd_adm(0);
+	_setpoint.acceleration[1] = _setpoint.acceleration[1] + _pdd_adm(1);
+	_setpoint.acceleration[2] = _setpoint.acceleration[2] + _pdd_adm(2);
+	_ydd_adm = 	(t_fb(2) - _Kyd*_yd_adm - _Kyp*_y_adm)/_My;
+	_yd_adm = _yd_adm + _ydd_adm*float(dt);
+	_y_adm = _y_adm + _yd_adm*float(dt);
+	_setpoint.yaw = _setpoint.yaw + _y_adm;
+	_setpoint.yawspeed = _setpoint.yawspeed+ _yd_adm;
 }
 // End Custom
 
@@ -415,20 +426,22 @@ void Prisma1Control::Run()
 			// End Custom
 
 			// Here I set the input to the controller
-			PositionControlInput input{set_control_input(_setpoint_temp)};
+			PositionControlInput input{set_control_input(_setpoint)};
 			
 			_control.setInputSetpoint(input);
 
 			if(!_counter) {
 				PX4_INFO("----------------------------");
-				PX4_INFO("Setpoint position:        %f, %f, %f",
-					(double)_setpoint_temp.x, (double)_setpoint_temp.y, (double)_setpoint_temp.z);
-				PX4_INFO("Setpoint velocity:        %f, %f, %f",
-					(double)_setpoint_temp.vx, (double)_setpoint_temp.vy, (double)_setpoint_temp.vz);
-				PX4_INFO("Setpoint acceleration:    %f, %f, %f",
-					(double)_setpoint_temp.acceleration[0], (double)_setpoint_temp.acceleration[1], (double)_setpoint_temp.acceleration[2]);
+				// PX4_INFO("Setpoint position:        %f, %f, %f",
+				// 	(double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
+				// PX4_INFO("Setpoint velocity:        %f, %f, %f",
+				// 	(double)_setpoint.vx, (double)_setpoint.vy, (double)_setpoint.vz);
+				// PX4_INFO("Setpoint acceleration:    %f, %f, %f",
+				// 	(double)_setpoint.acceleration[0], (double)_setpoint.acceleration[1], (double)_setpoint.acceleration[2]);
 				PX4_INFO("Setpoint yaw and yaw_dot: %f, %f",
-					(double)_setpoint_temp.yaw, (double)_setpoint_temp.yawspeed);
+					(double)_setpoint.yaw, (double)_setpoint.yawspeed);
+				PX4_INFO("Setpoint position:        %f, %f, %f",
+					(double)_y_adm, (double)_yd_adm, (double)_ydd_adm);
 			}
 
 			/*const float speed_up = */_takeoff.updateRamp(dt,

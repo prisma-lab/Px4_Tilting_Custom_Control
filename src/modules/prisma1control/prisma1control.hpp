@@ -126,7 +126,7 @@ public:
 
 	bool init();
 	// Custom
-	void setAdmGains(matrix::Vector3f adm);
+	void setAdmGains(matrix::Vector3f adm, matrix::Vector3f adt);
 	void adm_filter(double dt);
 	// End Custom
 
@@ -186,7 +186,9 @@ private:
 	vehicle_local_position_setpoint_s _setpoint_temp {};
     ft_sensor_s _ft_fb {};
 	matrix::Vector3f _Kp, _Kd, _M;
+	float _Kyp, _Kyd, _My;
 	matrix::Vector3f _pdd_adm, _pd_adm, _p_adm;
+	float _ydd_adm, _yd_adm, _y_adm;
 	// End Custom
 
 	vehicle_constraints_s _vehicle_constraints {
@@ -263,6 +265,9 @@ private:
 		(ParamFloat<px4::params::PRISMA_M_ADM>)   _param_m_adm,
 		(ParamFloat<px4::params::PRISMA_KD_ADM>)   _param_kd_adm,
 		(ParamFloat<px4::params::PRISMA_KP_ADM>)   _param_kp_adm,
+		(ParamFloat<px4::params::PRISMA_M_ADT>)   _param_m_adt,
+		(ParamFloat<px4::params::PRISMA_KD_ADT>)   _param_kd_adt,
+		(ParamFloat<px4::params::PRISMA_KP_ADT>)   _param_kp_adt,
 		(ParamInt<px4::params::CA_TILTING_TYPE>)    _param_tilting_type, 		/**< 0:h-tilting, 1:omnidirectional*/
 		(ParamInt<px4::params::CA_AIRFRAME>)	    _param_airframe, 			/**< 11: tilting_multirotors */
 		(ParamInt<px4::params::MC_PITCH_ON_TILT>)   _param_mpc_pitch_on_tilt,    /**< map the pitch angle on the tilt */

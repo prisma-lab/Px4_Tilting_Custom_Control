@@ -133,8 +133,8 @@ void Prisma1AttitudeControl::adm_filter(double dt){
     _pdd_adm = inv(diag(_M))*(f_fb - diag(_Kd)*_pd_adm - diag(_Kp)*_p_adm);
 	_pd_adm = _pd_adm + _pdd_adm*dt;
 	_p_adm = _p_adm + _pd_adm*dt;
-	_setpoint_temp.yaw_sp = _setpoint.yaw_sp + _p_adm(2);
-	_setpoint_temp.yaw_dot_sp = _setpoint.yaw_dot_sp + _pd_adm(2);
+	_setpoint.yaw_sp = _setpoint.yaw_sp + _p_adm(2);
+	_setpoint.yaw_dot_sp = _setpoint.yaw_dot_sp + _pd_adm(2);
 }
 // End Custom
 
@@ -192,8 +192,8 @@ void Prisma1AttitudeControl::Run()
 		    // PX4_INFO("pos correction: %f, %f, %f", (double)_setpoint.x, (double)_setpoint.y, (double)_setpoint.z);
 			// End Custom
 
-			_control.setInputSetpoint(_setpoint_temp);
-            	// PX4_INFO("Setpoint yaw and yaw_dot: %f, %f", (double)_setpoint_temp.yaw_sp, (double)_setpoint_temp.yaw_dot_sp);
+			_control.setInputSetpoint(_setpoint);
+            // PX4_INFO("Setpoint yaw and yaw_dot: %f, %f", (double)_setpoint.yaw_sp, (double)_setpoint.yaw_dot_sp);
 			_control.setState(state);
 
 			#ifdef TILT_CONTROL
@@ -228,13 +228,15 @@ void Prisma1AttitudeControl::Run()
 			_control.getTorqueSetpoint(torque_sp);
 
 			/*** CUSTOM ***/
-			tilting_servo_sp_s tilting_servo_sp;
-			if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
-				if(_tilting_servo_sp_sub.update(&tilting_servo_sp))
-					_tilting_angle_sp = tilting_servo_sp.angle[0];
-			}
-			else
-				_tilting_angle_sp = tilting_servo_sp.angle[0] = 0.0f;
+			#ifdef GEOM_CONTROL
+				tilting_servo_sp_s tilting_servo_sp;
+				if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
+					if(_tilting_servo_sp_sub.update(&tilting_servo_sp))
+						_tilting_angle_sp = tilting_servo_sp.angle[0];
+				}
+				else
+					_tilting_angle_sp = tilting_servo_sp.angle[0] = 0.0f;
+			#endif
 			/*** END-CUSTOM ***/
 
 			actuators.control[0] = torque_sp.xyz[0];
@@ -245,9 +247,11 @@ void Prisma1AttitudeControl::Run()
 			actuators.timestamp = thrust_sp.timestamp;
 
 			/*** CUSTOM ***/
-			if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
-				actuators.control[4] = PX4_ISFINITE(_tilting_angle_sp) ? _tilting_angle_sp : 0.0f;
-			}
+			#ifdef GEOM_CONTROL
+				if(_param_tilting_type.get() == 0 && _param_mpc_pitch_on_tilt.get() && _param_airframe.get() == 11){
+					actuators.control[4] = PX4_ISFINITE(_tilting_angle_sp) ? _tilting_angle_sp : 0.0f;
+				}
+			#endif
 			/*** END-CUSTOM ***/
 
 
