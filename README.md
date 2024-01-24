@@ -1,16 +1,18 @@
-## A PX4 Integrated Framework for Modeling and Controlling Multicopters with Tiltable Rotors
+# Px4_Tilting_Custom_Control
+ Customization of PX4 firmware to introduce a custom flight control stack 
 
-__abstract__ This repo presents a general framework for multicopters equipped with tiltable rotors (tilting multicopters). Differently from classical flat multicopters, tilting multicopters can be fully actuated systems able to decouple position and attitude control. The proposed framework has been trans-parently integrated into the widely used PX4 control stack, an open-source controller for ground and aerial systems, to fully exploit its high-level interfaces and functionalities and, at the same time, simplify the creation of new devices with tilting propellers. Simulation tools have been also added to the PX4 simulation framework, based on its Software-In-The-Loop (SITL) system and a set of simulated experiments in a dynamic robotic simulator have been carried out to demonstrate the effectiveness of this system. 
+## Efficient Development of Model-Based Controllers in PX4 Firmware: A Template-Based Customization Approach
+__abstract__ This repo presents an approach to customize the PX4 firmware, focusing on implementing a modular template for the efficient development of new model-based controllers alongside the existing control stack. The proposed template provides a clear and flexible structure that helps developers to easily integrate new control algorithms, leveraging all the existing firmware functionalities. This customization methodology has been tested on various aerial platforms, demonstrating its effectiveness in improving performance and enabling the rapid adoption of new controllers. 
+This work wants to enhance the field of flight firmware design, aiming to offer a solid foundation for developing customized and specialized solutions for a wide range of aerospace applications.
+## Article
+The description of the firmware architecture, the integration with the standard PX4 control stack, as well as its integration with a PixHawk autopilot, is described in the following article:
 
-## Article 
-The description of the firmware architecture, the integration with the standard PX4 control stack, as well as its integration with a PixHawk autopilot is described in the following article:
-
-``Salvatore Marcellini, Jonathan Cacace, Vincenzo Lippiello, "A PX4 Integrated Framework for Modeling and Controlling Multicopters with Tiltable Rotors", submitted to the 2023 International Conference on Unmanned Aircraft System (ICUAS ’23)  June 6 – 9, 2023  Warsaw, Poland``
+Simone D'Angelo, Francesca Pagano, Francesco Longobardi, Fabio Ruggiero, Vincenzo Lippiello, "Efficient Development of Model-Based Controllers in PX4 Firmware: A Template-Based Customization Approach", submitted to the 2024 International Conference on Unmanned Aircraft System (ICUAS ’24)  June 4-7, Chania, Crete, Greece
 
 This work is currently under review
 
 ## Video
-https://youtu.be/N61GHj4W_II
+
 
 # How to use
 Clone the repository with submodules <br />
@@ -22,4 +24,10 @@ For omnidirectional tilting drone <br />
 
 For one-tilt tilting drone <br />
 `make px4_sitl gazebo_baby_k`
+
+Trigger the custom flight modes:
+`commander mode prisma:man` to send command through RC
+or
+`commander mode prisma:prisma1` to send command through ROS2 network
+
 
