@@ -196,8 +196,9 @@ void FlightModeManager::start_flight_task()
 	}
 
 	// Manual position control
-	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) || task_failure) {
-		found_some_task = true;
+		if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+			|| _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN
+			|| task_failure) {		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {

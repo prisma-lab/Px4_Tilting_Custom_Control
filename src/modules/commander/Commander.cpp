@@ -406,6 +406,13 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "auto:precland")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
+			} else if (!strcmp(argv[1], "prisma:prisma1")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_PRISMA,
+						     PX4_CUSTOM_SUB_MODE_PRISMA_1);
+
+			} else if (!strcmp(argv[1], "prisma:man")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_PRISMA,
+						     PX4_CUSTOM_SUB_MODE_PRISMA_MAN);
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
@@ -461,6 +468,13 @@ int Commander::custom_command(int argc, char *argv[])
 
 		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN,
 						2.0f);
+
+		return (ret ? 0 : 1);
+	}
+
+	if(!strcmp(argv[0], "currentmode")) {
+		PX4_INFO("Sending currentmode request...");
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_CURRENTMODE);
 
 		return (ret ? 0 : 1);
 	}
@@ -827,6 +841,23 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+				}
+
+				else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_PRISMA) {
+					//PX4_INFO("Detected desired PRISMA main state");
+					if (custom_sub_mode > 0) {
+
+						switch (custom_sub_mode) {
+						case PX4_CUSTOM_SUB_MODE_PRISMA_1:
+							//PX4_INFO("Detected desired PRISMA1 sub state");
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_PRISMA_1;
+							break;
+						case PX4_CUSTOM_SUB_MODE_PRISMA_MAN:
+							//PX4_INFO("Detected desired PRISMA1 sub state");
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN;
+							break;
+						}
+					}
 				}
 
 			} else {

@@ -1,0 +1,12 @@
+menuconfig MODULES_PRISMA1_ATT_CONTROL
+	bool "prisma1_att_control"
+	default n
+	---help---
+		Enable support for prisma1control
+
+menuconfig USER_PRISMA1_ATT_CONTROL
+	bool "prisma1_att_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_PRISMA1_ATT_CONTROL
+	---help---
+		Put prisma1control in userspace memory

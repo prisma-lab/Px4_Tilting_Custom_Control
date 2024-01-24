@@ -418,8 +418,8 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
 
-
-		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
+		&& !_vehicle_control_mode.flag_control_prisma_enabled) {
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
 			if ((_setpoint.timestamp < _time_position_control_enabled)
@@ -642,8 +642,9 @@ void MulticopterPositionControl::Run()
 		// Publish takeoff status
 		const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
 
-		if (takeoff_state != _takeoff_status_pub.get().takeoff_state
-		    || !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit)) {
+		if ((takeoff_state != _takeoff_status_pub.get().takeoff_state
+		    || !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit))
+			&& !_vehicle_control_mode.flag_control_prisma_enabled) {
 			_takeoff_status_pub.get().takeoff_state = takeoff_state;
 			_takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
 			_takeoff_status_pub.get().timestamp = hrt_absolute_time();

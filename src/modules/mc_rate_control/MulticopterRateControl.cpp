@@ -189,6 +189,12 @@ MulticopterRateControl::Run()
 		}
 
 		// run the rate controller
+		if(_vehicle_control_mode.flag_control_prisma_enabled){
+			//actuator_controls_s actuators{};
+			//actuators.control[3] = 0.8f;
+			//actuators.timestamp = hrt_absolute_time();
+			//_actuators_0_pub.publish(actuators);
+		}
 		if (_vehicle_control_mode.flag_control_rates_enabled) {
 
 			// reset integral if disarmed

@@ -232,8 +232,12 @@ set(msg_files
 	#*** CUSTOM
 	tilting_mc_desired_angles.msg
 	tilting_servo_sp.msg
+	prisma_virtual_acc_setpoint.msg
+	prisma_geom_pos_out.msg
+	prisma_tilt_pos_out.msg
+	tilting_attitude_setpoint.msg
+	ft_sensor.msg
 	#*** END-CUSTOM
-
 )
 list(SORT msg_files)
 

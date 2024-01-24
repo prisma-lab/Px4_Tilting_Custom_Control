@@ -838,7 +838,8 @@ void Navigator::run()
 			navigation_mode_new = &_precland;
 			_precland.set_mode(PrecLandMode::Required);
 			break;
-
+		
+		case vehicle_status_s::NAVIGATION_STATE_PRISMA_MAN:
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:

@@ -20,8 +20,8 @@ publications:
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
 
-  # - topic: /fmu/out/vehicle_angular_velocity
-  #   type: px4_msgs::msg::VehicleAngularVelocity
+  - topic: /fmu/out/vehicle_angular_velocity
+    type: px4_msgs::msg::VehicleAngularVelocity
 
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude
@@ -46,6 +46,21 @@ publications:
 
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+  - topic: /fmu/out/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+
+  - topic: /fmu/out/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/out/ft_sensor
+    type: px4_msgs::msg::FtSensor
+
+  - topic: /fmu/out/tilting_mc_desired_angles
+    type: px4_msgs::msg::TiltingMcDesiredAngles
+
+  - topic: /fmu/out/tilting_attitude_setpoint
+    type: px4_msgs::msg::TiltingAttitudeSetpoint
 
 subscriptions:
 
@@ -87,3 +102,18 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+  - topic: /fmu/in/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+
+  - topic: /fmu/in/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/in/ft_sensor
+    type: px4_msgs::msg::FtSensor
+
+  - topic: /fmu/in/tilting_mc_desired_angles
+    type: px4_msgs::msg::TiltingMcDesiredAngles
+
+  - topic: /fmu/in/tilting_attitude_setpoint
+    type: px4_msgs::msg::TiltingAttitudeSetpoint
