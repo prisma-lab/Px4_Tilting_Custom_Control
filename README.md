@@ -25,8 +25,8 @@ For omnidirectional tilting drone <br />
 For one-tilt tilting drone <br />
 `make px4_sitl gazebo_baby_k`
 
-Trigger the custom flight modes:
-`commander mode prisma:man` to send command through RC
-or
-`commander mode prisma:prisma1` to send command through ROS2 network
+Trigger the custom flight modes:<br />
+`commander mode prisma:man` to send command through RC<br />
+or<br />
+`commander mode prisma:prisma1` to send command through ROS2 network<br />
 
