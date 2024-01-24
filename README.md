@@ -34,4 +34,6 @@ Trigger the custom flight modes:<br />
 or<br />
 `commander mode prisma:prisma1` to send command through ROS2 network
 
+### The ros2 planner is available here <br />
+https://github.com/prisma-lab/px4_ros_com
 
