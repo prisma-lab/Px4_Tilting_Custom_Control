@@ -20,10 +20,10 @@ Clone the repository with submodules <br />
 
 ## Run the simulation
 For omnidirectional tilting drone <br />
-`make px4_sitl gazebo_NDT_tilting`
+`make px4_sitl gazebo-classic_NDT_tilting`
 
 For one-tilt tilting drone <br />
-`make px4_sitl gazebo_baby_k`
+`make px4_sitl gazebo-classic_baby_k`
 
 Trigger the custom flight modes:<br />
 `commander mode prisma:man` to send command through RC<br />
