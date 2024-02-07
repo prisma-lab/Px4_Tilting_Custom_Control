@@ -56,8 +56,8 @@ void AttitudeControlPass::_thrustAndAttitude(){
 	_thrust_sp(0) = _thrust_sp(1) = 0.0f;
 	_thrust_sp(2) = _mass * sqrtf(pow(_mu(0), 2)+pow(_mu(1), 2)+pow(_mu(2)-9.81f, 2));
 
-	roll_sp = asin(_mass * (_mu(1)*cos(yaw_sp)-_mu(0)*sin(yaw_sp))/_thrust_sp(2));
-	pitch_sp = atan((_mu(0)*cos(yaw_sp)+_mu(1)*sin(yaw_sp))/(_mu(2)-9.81f));
+	roll_sp = asin(_mass * (_mu(1)*float(cos(yaw_sp))-_mu(0)*float(sin(yaw_sp)))/_thrust_sp(2));
+	pitch_sp = atan((_mu(0)*float(cos(yaw_sp))+_mu(1)*float(sin(yaw_sp)))/(_mu(2)-9.81f));
 
 	_roll_sp = _roll_filt.apply(roll_sp);
 	_pitch_sp = _pitch_filt.apply(pitch_sp);

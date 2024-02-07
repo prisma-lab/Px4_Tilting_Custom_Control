@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,75 +34,20 @@
 #pragma once
 
 #include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
-#include <px4_platform_common/module_params.h>
 
-class ActuatorEffectivenessTiltingMultirotor : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessRoverAckermann : public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessTiltingMultirotor(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTiltingMultirotor() = default;
+	ActuatorEffectivenessRoverAckermann() = default;
+	virtual ~ActuatorEffectivenessRoverAckermann() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	int numMatrices() const override { return _tilting_type == 0 ? 1 : 2; }
-
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		if(_tilting_type == 0){ //Non omnidirectional
-			allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-		}
-		else{ //Omnidirectional tilting
-			allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
-			allocation_method_out[1] = AllocationMethod::SEQUENTIAL_DESATURATION;
-		}
-	}
-
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		if(_tilting_type == 0){ //Non omnidirectional
-			normalize[0] = true;
-		}
-		else{ //Omnidirectional tilting
-			normalize[0] = true;
-		}
-	}
-
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max); //override;
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	const char *name() const override { return "Tilting Multirotor"; }
-
-protected:
-	void updateParams() override;
-
-	ActuatorEffectivenessRotors *_mc_rotors;
-	ActuatorEffectivenessTilts *_tilts;
-
-	param_t _tilting_type_handle;
-
-	uint32_t _nontilted_motors{}; ///< motors that are not tiltable
-
-	int _first_tilt_idx{0};
-	float _last_tilt_control{NAN};
-	bool _tilt_updated{true};
-	int32_t _tilting_type{0};
-
-	static constexpr int NUM_SERVOS_MAX = 5;
-	struct ServoParamHandles{
-		param_t angle_min;
-		param_t angle_max;
-	};
-	param_t _servo_count_handle;
-	int32_t _servo_count{0};
-
-	struct ServoParam{
-		float angle_min;
-		float angle_max;
-	};
-
-	ServoParamHandles _servo_param_handles[NUM_SERVOS_MAX];
-	ServoParam _servo_param[NUM_SERVOS_MAX];
+	const char *name() const override { return "Rover (Ackermann)"; }
+private:
+	uint32_t _motors_mask{};
 };

@@ -38,6 +38,8 @@
 #include "ActuatorEffectivenessTilts.hpp"
 #include <px4_platform_common/module_params.h>
 
+#include <uORB/Subscription.hpp>
+
 class ActuatorEffectivenessTiltingMultirotor : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -54,7 +56,7 @@ public:
 			allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 		}
 		else{ //Omnidirectional tilting
-			allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
+			allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 			allocation_method_out[1] = AllocationMethod::SEQUENTIAL_DESATURATION;
 		}
 	}
@@ -66,6 +68,7 @@ public:
 		}
 		else{ //Omnidirectional tilting
 			normalize[0] = true;
+			normalize[1] = true;
 		}
 	}
 
@@ -79,6 +82,8 @@ protected:
 	void updateParams() override;
 
 	ActuatorEffectivenessRotors *_mc_rotors;
+	ActuatorEffectivenessRotors *_mc_rotors_vertical;
+	ActuatorEffectivenessRotors *_mc_rotors_lateral;
 	ActuatorEffectivenessTilts *_tilts;
 
 	param_t _tilting_type_handle;
@@ -105,4 +110,6 @@ protected:
 
 	ServoParamHandles _servo_param_handles[NUM_SERVOS_MAX];
 	ServoParam _servo_param[NUM_SERVOS_MAX];
+
+	//uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 };

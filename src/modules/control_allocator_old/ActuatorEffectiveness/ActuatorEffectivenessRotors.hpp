@@ -82,7 +82,7 @@ public:
 	/*** CUSTOM ***/
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
 				    bool tilt_support = false, bool tilting_omnidir = false);
-	/*** END CUSTOM ***/
+	/*** CUSOTM ***/
 	virtual ~ActuatorEffectivenessRotors() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
@@ -104,7 +104,8 @@ public:
 	*/
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
-					      bool tilting_omnidir = false);
+					      bool tilting_omnidir = false,
+					      bool horizontal_matrix = false);
 	/*** END-CUSTOM ***/
 
 	bool addActuators(Configuration &configuration);

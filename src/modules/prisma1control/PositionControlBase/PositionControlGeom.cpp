@@ -103,7 +103,7 @@ void PositionControlGeom::_positionController(){
 
 	Vector3f b1d;
 	float yaw = Eulerf(att_q).psi();
-	if (isnan(_input.yaw_sp))
+	if (std::isnan(_input.yaw_sp))
 		_input.yaw_sp = yaw + _input.yaw_dot_sp*_dt;
 	
 	b1d = Vector3f(cos(_input.yaw_sp), sin(_input.yaw_sp), 0.0f);

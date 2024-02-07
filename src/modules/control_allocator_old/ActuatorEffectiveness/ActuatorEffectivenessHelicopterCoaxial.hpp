@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,75 +34,84 @@
 #pragma once
 
 #include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
+
 #include <px4_platform_common/module_params.h>
 
-class ActuatorEffectivenessTiltingMultirotor : public ModuleParams, public ActuatorEffectiveness
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/manual_control_switches.h>
+
+class ActuatorEffectivenessHelicopterCoaxial : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessTiltingMultirotor(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTiltingMultirotor() = default;
+
+	static constexpr int NUM_SWASH_PLATE_SERVOS_MAX = 4;
+
+	struct SwashPlateGeometry {
+		float angle;
+		float arm_length;
+		float trim;
+	};
+
+	struct Geometry {
+		SwashPlateGeometry swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
+		int num_swash_plate_servos{0};
+		float spoolup_time;
+	};
+
+	ActuatorEffectivenessHelicopterCoaxial(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessHelicopterCoaxial() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	int numMatrices() const override { return _tilting_type == 0 ? 1 : 2; }
+	const char *name() const override { return "Helicopter"; }
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		if(_tilting_type == 0){ //Non omnidirectional
-			allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-		}
-		else{ //Omnidirectional tilting
-			allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
-			allocation_method_out[1] = AllocationMethod::SEQUENTIAL_DESATURATION;
-		}
-	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		if(_tilting_type == 0){ //Non omnidirectional
-			normalize[0] = true;
-		}
-		else{ //Omnidirectional tilting
-			normalize[0] = true;
-		}
-	}
+	const Geometry &geometry() const { return _geometry; }
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max); //override;
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	const char *name() const override { return "Tilting Multirotor"; }
+	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+private:
+	float throttleSpoolupProgress();
 
-protected:
 	void updateParams() override;
 
-	ActuatorEffectivenessRotors *_mc_rotors;
-	ActuatorEffectivenessTilts *_tilts;
-
-	param_t _tilting_type_handle;
-
-	uint32_t _nontilted_motors{}; ///< motors that are not tiltable
-
-	int _first_tilt_idx{0};
-	float _last_tilt_control{NAN};
-	bool _tilt_updated{true};
-	int32_t _tilting_type{0};
-
-	static constexpr int NUM_SERVOS_MAX = 5;
-	struct ServoParamHandles{
-		param_t angle_min;
-		param_t angle_max;
+	struct SaturationFlags {
+		bool roll_pos;
+		bool roll_neg;
+		bool pitch_pos;
+		bool pitch_neg;
+		bool yaw_pos;
+		bool yaw_neg;
+		bool thrust_pos;
+		bool thrust_neg;
 	};
-	param_t _servo_count_handle;
-	int32_t _servo_count{0};
+	static void setSaturationFlag(float coeff, bool &positive_flag, bool &negative_flag);
 
-	struct ServoParam{
-		float angle_min;
-		float angle_max;
+	struct ParamHandlesSwashPlate {
+		param_t angle;
+		param_t arm_length;
+		param_t trim;
 	};
+	struct ParamHandles {
+		ParamHandlesSwashPlate swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
+		param_t num_swash_plate_servos;
+		param_t spoolup_time;
+	};
+	ParamHandles _param_handles{};
 
-	ServoParamHandles _servo_param_handles[NUM_SERVOS_MAX];
-	ServoParam _servo_param[NUM_SERVOS_MAX];
+	Geometry _geometry{};
+
+	int _first_swash_plate_servo_index{};
+	SaturationFlags _saturation_flags;
+
+	// Throttle spoolup state
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
+	uint64_t _armed_time{0};
+
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 };

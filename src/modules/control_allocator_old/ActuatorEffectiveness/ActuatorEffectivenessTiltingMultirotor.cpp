@@ -89,11 +89,17 @@ void ActuatorEffectivenessTiltingMultirotor::updateParams()
 	if(_tilting_type == 0) //Non omnidirectional
 	{
 		_mc_rotors = new ActuatorEffectivenessRotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards);
+		_mc_rotors_vertical = nullptr;
+		_mc_rotors_lateral = nullptr;
 	}
 	else{ //Omnidirectional tilting
 
-		_mc_rotors = new ActuatorEffectivenessRotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards,
-							      false, true);
+		_mc_rotors = nullptr;
+		_mc_rotors_vertical = new ActuatorEffectivenessRotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards,
+								      false, true);
+
+		_mc_rotors_lateral = new ActuatorEffectivenessRotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards,
+								      false, true);
 	}
 }
 
@@ -115,7 +121,6 @@ ActuatorEffectivenessTiltingMultirotor::getEffectivenessMatrix(Configuration &co
 	// 		    << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
 	bool rotors_added_successfully = false;
-	bool tilts_added_successfully = false;
 
 	//Rotors
 	if(_tilting_type == 0){ //Non omnidirectional{
@@ -126,30 +131,29 @@ ActuatorEffectivenessTiltingMultirotor::getEffectivenessMatrix(Configuration &co
 		configuration.selected_matrix = 0;
 		_first_tilt_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
 		_tilts->updateTorqueSign(_mc_rotors->geometry(), true /* disable pitch to avoid configuration errors */);
-		tilts_added_successfully = _tilts->addActuators(configuration);
 
 	}
 	else{ //Omnidirectional tilting
 
 		//Vertical forces matrix
 		configuration.selected_matrix = 0;
-		rotors_added_successfully = _mc_rotors->addActuators(configuration);
+		rotors_added_successfully = _mc_rotors_vertical->addActuators(configuration);
 
-		// // Lateral forces matrix
-		// configuration.selected_matrix = 1;
-		// rotors_added_successfully = _mc_rotors_lateral->addActuators(configuration);
+		// Lateral forces matrix
+		configuration.selected_matrix = 1;
+		rotors_added_successfully = _mc_rotors_lateral->addActuators(configuration);
 
-		// *configuration.num_actuators /=2;
+		*configuration.num_actuators /=2;
 
 		// Tilts
-		configuration.selected_matrix = 1;
+		configuration.selected_matrix = 0;
 		_first_tilt_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
-		tilts_added_successfully = _tilts->addActuators(configuration);
 		// _tilts->updateTorqueSign(_mc_rotors_vertical->geometry(), true /* disable pitch to avoid configuration errors */);
 		// _tilts->updateTorqueSign(_mc_rotors_lateral->geometry(), true /* disable pitch to avoid configuration errors */);
 
 	}
 
+	const bool tilts_added_successfully = _tilts->addActuators(configuration);
 
 	return (rotors_added_successfully && tilts_added_successfully);
 }
