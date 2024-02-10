@@ -40,4 +40,4 @@ https://github.com/prisma-lab/px4_ros_com
 https://github.com/prisma-lab/px4_msgs
 
 ### The custom QGC interface is available here <br />
-
+https://github.com/prisma-lab/qgroundcontrol.git
