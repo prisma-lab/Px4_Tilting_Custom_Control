@@ -2,10 +2,9 @@
  Customization of PX4 firmware to introduce a custom flight control stack 
 
 ## Efficient Development of Model-Based Controllers in PX4 Firmware: A Template-Based Customization Approach
-__abstract__ This repo presents an approach to customize the PX4 firmware, focusing on implementing a modular template for the efficient development of new model-based controllers alongside the existing control stack. The proposed template provides a clear and flexible structure that helps developers to easily integrate new control algorithms, leveraging all the existing firmware functionalities. This customization methodology has been tested on various aerial platforms, demonstrating its effectiveness in improving performance and enabling the rapid adoption of new controllers. 
-This work wants to enhance the field of flight firmware design, aiming to offer a solid foundation for developing customized and specialized solutions for a wide range of aerospace applications.
+__abstract__ This paper introduces a refined iteration of the PX4 autopilot firmware tailored to support developers in integrating bespoke control algorithms alongside the existing control framework. The proposed methodology employs a template-driven approach and introduces two novel control modules, thereby enabling users to harness all firmware functionalities within their custom modalities, including the QGroundControl interface, while retaining all the standard modules and compatibility with the QGroundControl interface. With its transparent and adaptable structure, the software framework presented herein lays a robust groundwork for implementing tailored and specialized solutions across diverse aerospace domains. As a practical demonstration, we apply the developed firmware to the domain of inspection and maintenance, wherein it incorporates an admittance controller and a model-based control algorithm for a tiltable drone equipped with a sensorized tool. The efficacy and versatility of the proposed approach are validated through simulations and empirical trials conducted across multiple aerial platforms. The produced code is released to the community.   
 ## Article
-The description of the firmware architecture, the integration with the standard PX4 control stack, as well as its integration with a PixHawk autopilot, is described in the following article:
+The description of the firmware architecture, the integration with the standard PX4 control stack, as well as its integration with a PixHawk autopilot, are described in the following article:
 
 Simone D'Angelo, Francesca Pagano, Francesco Longobardi, Fabio Ruggiero, Vincenzo Lippiello, "Efficient Development of Model-Based Controllers in PX4 Firmware: A Template-Based Customization Approach", submitted to the 2024 International Conference on Unmanned Aircraft System (ICUAS ’24)  June 4-7, Chania, Crete, Greece
 
@@ -36,4 +35,9 @@ or<br />
 
 ### The ros2 planner is available here <br />
 https://github.com/prisma-lab/px4_ros_com
+
+### The custom PX4 msgs definition is available here <br />
+https://github.com/prisma-lab/px4_msgs
+
+### The custom QGC interface is available here <br />
 
