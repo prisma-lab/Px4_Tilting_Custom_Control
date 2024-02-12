@@ -36,13 +36,10 @@ or<br />
 ### The ros2 planner is available here <br />
 https://github.com/prisma-lab/px4_ros_com <br />
 select the default branch for stable custom release 1.13, or switch to branch 1.14 for the latest custom stable release <br />
-### The px4 msgs are needed to properly compile the package, they can be found here <br />
-https://github.com/prisma-lab/px4_msgs.git <br />
-Select the same branch of the planner to match with the right message definition <br />
-
 
 ### The custom PX4 msgs definition is available here <br />
-https://github.com/prisma-lab/px4_msgs
+https://github.com/prisma-lab/px4_msgs <br />
+Select the same branch of the planner to match with the right message definition <br />
 
 ### The custom QGC interface is available here <br />
 https://github.com/prisma-lab/qgroundcontrol.git
