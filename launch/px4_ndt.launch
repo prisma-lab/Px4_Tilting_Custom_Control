@@ -5,7 +5,7 @@
 
     <!-- PX4 config arguments -->
     <arg name="est" default="ekf2"/>
-    <arg name="vehicle" default="NDT_tilting_interaction"/>
+    <arg name="vehicle" default="NDT_tilting"/>
     <arg name="ID" default="0"/>
     <arg name="interactive" default="true"/>
 

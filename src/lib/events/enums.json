@@ -533,12 +533,12 @@
                             "description": "Vtol Takeoff"
                         },
                         "24": {
-                            "name": "prisma_1",
-                            "description": "Custom Position"
+                            "name": "prisma_man",
+                            "description": "PRISMA Manual"
                         },
                         "25": {
-                            "name": "prisma_man",
-                            "description": "Custom Offboard"
+                            "name": "prisma_1",
+                            "description": "PRISMA Offboard"
                         },
                         "255": {
                             "name": "unknown",
